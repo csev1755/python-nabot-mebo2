@@ -16,7 +16,6 @@ import collections
 import warnings
 
 import scipy.ndimage.interpolation as itpl
-import scipy.misc as misc
 
 
 def _is_numpy_image(img):
@@ -309,15 +308,15 @@ class Rotate(object):
 
 
 class Resize(object):
-    """Resize the the given ``numpy.ndarray`` to the given size.
+    """Resize the given ``PIL.Image`` to the given size.
     Args:
         size (sequence or int): Desired output size. If size is a sequence like
             (h, w), output size will be matched to this. If size is an int,
             smaller edge of the image will be matched to this number.
             i.e, if height > width, then image will be rescaled to
             (size * height / width, size)
-        interpolation (int, optional): Desired interpolation. Default is
-            ``PIL.Image.BILINEAR``
+        interpolation (str, optional): Desired interpolation. Default is
+            ``'nearest'``
     """
 
     def __init__(self, size, interpolation='nearest'):
@@ -333,12 +332,13 @@ class Resize(object):
         Returns:
             PIL Image: Rescaled image.
         """
-        if img.ndim == 3:
-            return misc.imresize(img, self.size, self.interpolation)
-        elif img.ndim == 2:
-            return misc.imresize(img, self.size, self.interpolation, 'F')
+        if isinstance(self.size, int) or isinstance(self.size, float):
+
+            img.thumbnail((self.size, self.size), getattr(Image, self.interpolation.upper()))
         else:
-            RuntimeError('img should be ndarray with 2 or 3 dimensions. Got {}'.format(img.ndim))
+            img = img.resize(self.size, getattr(Image, self.interpolation.upper()))
+
+        return img
 
 
 class CenterCrop(object):

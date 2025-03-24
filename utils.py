@@ -7,6 +7,7 @@ cmap = plt.cm.viridis
 
 def parse_command():
     import argparse
+    parser = argparse.ArgumentParser()
 
     parser.add_argument('--gpu', default='0', type=str, metavar='N', help="gpu id")
     parser.add_argument('-m', '--model', default='resnet', type=str, help="name of the model to use: resnet, mobilenet, etc")

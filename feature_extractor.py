@@ -1,7 +1,9 @@
 import torch
-import torchvision.models as models
 import torchvision.transforms as transforms
-
+from torchvision import models
+from torchvision.models import ResNet18_Weights, AlexNet_Weights, VGG16_Weights, \
+    DenseNet161_Weights, Inception_V3_Weights, MobileNet_V2_Weights, \
+    Wide_ResNet50_2_Weights, ResNeXt50_32X4D_Weights, GoogLeNet_Weights 
 import logging
 import numpy as np
 from PIL import Image
@@ -11,23 +13,23 @@ import time
 class FeatureExtractor():
     def __init__(self, model_name='resnet'):
         if model_name == 'resnet':
-            self.model = resnet18 = models.resnet18(pretrained=True)
+            self.model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
         elif model_name == 'alexnet':
-            self.model = models.alexnet(pretrained=True)
+            self.model = models.alexnet(weights=AlexNet_Weights.DEFAULT)
         elif model_name == 'vgg16':
-            self.model = models.vgg16(pretrained=True)
+            self.model = models.vgg16(weights=VGG16_Weights.DEFAULT)
         elif model_name == 'densenet':
-            self.model = models.densenet161(pretrained=True)
+            self.model = models.densenet161(weights=DenseNet161_Weights.DEFAULT)
         elif model_name == 'inception':
-            self.model = models.inception_v3(pretrained=True)
+            self.model = models.inception_v3(weights=Inception_V3_Weights.DEFAULT)
         elif model_name == 'googlenet':
-            self.model = models.googlenet(pretrained=True)
+            self.model = models.googlenet(weights=GoogLeNet_Weights.DEFAULT)
         elif model_name == 'mobilenet':
-            self.model = models.mobilenet_v2(pretrained=True)
+            self.model = models.mobilenet_v2(weights=MobileNet_V2_Weights.DEFAULT)
         elif model_name == 'resnext':
-            self.model = models.resnext50_32x4d(pretrained=True)
+            self.model = models.resnext50_32x4d(weights=ResNeXt50_32X4D_Weights.DEFAULT)
         elif model_name == 'wide_resnet':
-            self.model = models.wide_resnet50_2(pretrained=True)
+            self.model = models.wide_resnet50_2(weights=Wide_ResNet50_2_Weights.DEFAULT)
 
         if torch.cuda.is_available():
             self.model.cuda()
@@ -38,7 +40,7 @@ class FeatureExtractor():
                                  std=[0.229, 0.224, 0.225])
         
         self.input_transform = transforms.Compose([
-            transforms.Scale(256),
+            transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             normalize,

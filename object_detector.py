@@ -1,7 +1,7 @@
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
-
+from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 from nabot_controller import NabotController
 import logging
 import numpy as np
@@ -12,7 +12,7 @@ import time
 class ObjectDetector():
     def __init__(self, model_name='resnet'):
         if model_name == 'resnet':
-            self.model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+            self.model = models.detection.fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
         
         if torch.cuda.is_available():
             self.model.cuda()
