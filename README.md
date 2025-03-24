@@ -1,54 +1,78 @@
-# Instalation
-To install the dependency's run the following command
+# Nabot AI / Mebo 2.0 Python API
 
+This repository contains code for controlling the **Nabot AI** and **Mebo 2.0** robots. Since the original developers of these robots appear to be inactive, I have forked this project to try and maintain it for those who are still interested.
+
+## Installation
+
+### 1. Create a Virtual Environment
 ```
-pip3 install -r requirement.txt
+python3 -m venv venv
 ```
 
-# Nabot's Python API
-This repository is inteded for controlling Nabot. Please feel free to clone the repository and change/add features you are interested in and send us a pull request to share it with others.
+### 2. Activate the Virtual Environment
 
-# Manual Control
-
-To control the robot manually run the manual_control.py
-Before running the code make sure you are connected to the Nabot via Wifi.
-
+#### Windows
 ```
-    python3 manual_control.py
+venv\Scripts\activate
 ```
-After running the script, two windows should will open, one for Nabot's camera feed and the other one for controlling it. In the logs you might see request timeouts from time to time which is normal.
 
-# Robot Controller
-In addition to controlling the robot using UI elements, you can control it by code! Just instantiate the class NabotController(nabot_controller.py) and use its function. You extend this class to add more functionalities to your Nabot.
-
-Using the NabotController class you can send commands to Nabot, get its joint states, get its latest image, and a lot more.
-Here is an example of controlling nabot.
+#### macOS / Linux
 ```
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+```
+pip3 install -r requirements.txt
+```
+
+## Usage
+
+To manually control the robot, ensure you are connected to it via WiFi, then run:
+```
+python3 manual_control.py
+```
+This will open two windows: one displaying the robot's camera feed and another for controlling the robot. Some occasional request timeouts may appear in the logs which is normal.
+
+In addition to manual control, you can control the robot programmatically using the `NabotController` class found in `nabot_controller.py`.
+
+### Example: Move the Robot
+```python
+from nabot_controller import NabotController
+from direction import Direction
+
 nabot = NabotController()
-
-robot_image = nabot.move(Direction.FORWARD, power=30, steps=2)
+nabot.move(Direction.FORWARD, power=30, steps=2)
 ```
 
-Here is another example that updates Nabot's joint states and print them.
+### Example: Retrieve Joint States
+```python
+from nabot_controller import NabotController
 
-```
 nabot = NabotController()
-
 nabot.update_joint_states()
 print(nabot.get_joint_states())
-
 ```
+You can extend the `NabotController` class to add more functionalities as needed.
 
-You can find this code at the end of the nabot_controller.py file.
+## Object Detection
 
-# Object Detection
+Object detection allows the robot to analyze images and detect objects using a neural network.
 
-Object detection is the process of feeding an image to a nueral network which tries to detect objects in it. In the example below we are getting Nabot's latest image from the class NabotController and passing it to an instance of the ObjectDetector class. The predict function gets an image as input and returns 3 outputs. First, is the bounding boxes for the detections. Second one is the label associated with each bounding box and the last one is network's confidence in its prediction which is between 0 and 1.
+### Example: Detect Objects in an Image
+```python
+from object_detector import ObjectDetector
+from nabot_controller import NabotController
 
-```
 object_detector = ObjectDetector()
 nabot = NabotController()
-# make sure you are connected to Nabot's wifi - otherwise the get_image function waits till its connected to Nabot
 robot_image = nabot.get_image()
-bounding_boxes, lables, confidence = object_detector.predict(robot_image)
+
+bounding_boxes, labels, confidences = object_detector.predict(robot_image)
+
+for i in range(len(bounding_boxes)):
+    print(f"Object {i + 1}:")
+    print(f"  Label: {labels[i]}")
+    print(f"  Bounding Box: {bounding_boxes[i]}")
+    print(f"  Confidence: {confidences[i]:.2f}")
 ```
