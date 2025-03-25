@@ -9,8 +9,7 @@ class RobotCommands():
     last_robot_command = [0, 0, 0, 0, 0, 0] # forward, left_right, arm, wrist_ud, wrist_rot, gripper
     robot_state_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
-
-    init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
+    
     messageCount = 0
     
     __instance = None
@@ -30,11 +29,6 @@ class RobotCommands():
             RobotCommands.__instance = self
 
         self.logger = logging.getLogger('Robot Commands')
-        
-    def init_robot(self):
-        for cmd in self.init_commands:
-            self.send_single_command_to_robot(cmd, 0)
-        self.logger.info('Initialized robot')
 
     def send_robot_to_center(self, goal=[40, 50, 50, 0]):
         self.send_robot_to_goal(goal=goal)

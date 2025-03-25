@@ -15,13 +15,13 @@ class RobotController():
     def __init__(self, *args, **kwargs):
         self.robot_cmd = RobotCommands.getInstance(*args, **kwargs)
         self.stop_command = [0,0,0,0,0,0]
+        self.init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
         self.logger = logging.getLogger("Robot Controller")
-        self.robot_cmd.init_robot()
+        for cmd in self.init_commands:
+            self.robot_cmd.send_single_command_to_robot(cmd, 0)
+        self.logger.info('Initialized robot')
         self.curr_image = None
         self.update_image()
-    
-    def init_robot(self):
-        self.robot_cmd.init_robot()
 
     def update_joint_states(self):
         self.robot_cmd.update_joint_states()
