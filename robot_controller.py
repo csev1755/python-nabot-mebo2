@@ -113,14 +113,18 @@ class RobotController():
         self.send_joint_command_to_robot([0, 0, 0, 0, 0, 100])
         time.sleep(2)
 
-    def send_single_command_to_robot(self, cmd, value):
+    def send_single_command_to_robot(self, cmd, value, retries=5, delay=0.5):
         URL = "http://192.168.99.1/ajax/command.json?" + self.generate_single_command(1, cmd, value)
-        time.sleep(0.01)
-        try:
-            r = requests.get(url = URL, verify=False, timeout=1)
-            return r.json()
-        except:
-            self.logger.warning("Error parsing robot's response")
+
+        for attempt in range(retries):
+            try:
+                r = requests.get(url=URL, verify=False, timeout=1)
+                return r.json()
+            except requests.RequestException as e:
+                self.logger.warning(f"Attempt {attempt + 1}/{retries} failed: {e}")
+                time.sleep(delay)
+
+        self.logger.error(f"Failed to send {cmd} after multiple retries")
     
     def send_joint_command_to_robot(self, jointValues, use_thread=False):
         self.send_joint_command_to_robot_helper(jointValues)
@@ -144,16 +148,19 @@ class RobotController():
 
     def update_joint_states(self):
         for cmd in self.robot_state_names:
-            data = self.send_single_command_to_robot(cmd, 0)
-            aJsonString = data['response']
-            if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
-                self.robot_state[0] = int(aJsonString[4:])
-            elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
-                self.robot_state[1] = int(aJsonString[9:])
-            elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
-                self.robot_state[2] = int(aJsonString[13:])
-            elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
-                self.robot_state[3] = int(aJsonString[5:])
+            try:
+                data = self.send_single_command_to_robot(cmd, 0)
+                aJsonString = data['response']
+                if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
+                    self.robot_state[0] = int(aJsonString[4:])
+                elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
+                    self.robot_state[1] = int(aJsonString[9:])
+                elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
+                    self.robot_state[2] = int(aJsonString[13:])
+                elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
+                    self.robot_state[3] = int(aJsonString[5:])
+            except:
+                self.logger.warning("Error parsing robot's response")
 
     def get_joint_states(self):
         return self.robot_state
