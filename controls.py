@@ -1,9 +1,12 @@
 import time
-import requests
 import numpy as np
 import logging
-import enum
+import cv2
+import threading
 from typing import List
+from PIL import Image
+from socket import timeout
+import urllib
 
 from commands import RobotCommands
 from direction import Direction
@@ -14,16 +17,8 @@ class RobotController():
         self.stop_command = [0,0,0,0,0,0]
         self.logger = logging.getLogger("Robot Controller")
         self.robot_cmd.init_robot()
-
-    def get_image(self):
-        im = self.robot_cmd.get_latest_image()
-        while im is None:
-            time.sleep(1)
-            im = self.robot_cmd.get_latest_image()
-        return im
-    
-    def get_image_cv2(self):
-        return self.robot_cmd.get_image_cv2()
+        self.curr_image = None
+        self.update_image()
     
     def init_robot(self):
         self.robot_cmd.init_robot()
@@ -109,6 +104,39 @@ class RobotController():
     
     def send_robot_to_center(self, goal):
          self.robot_cmd.send_robot_to_center(goal=goal)
+
+    def get_image(self):
+        im = self.get_latest_image()
+        while im is None:
+            time.sleep(1)
+            im = self.get_latest_image()
+        return im
+    
+    def get_image_cv2(self):
+        return cv2.imdecode(self.curr_image, cv2.IMREAD_COLOR)
+
+    def get_latest_image(self):
+        if self.curr_image is None:
+            return None
+        opencv_im = cv2.imdecode(self.curr_image, cv2.IMREAD_COLOR)
+        return Image.fromarray(cv2.cvtColor(opencv_im, cv2.COLOR_BGR2RGB))
+
+    def update_image(self):
+        # download the image, convert it to a NumPy array, and then read
+        # it into OpenCV format
+        try:
+            resp = urllib.request.urlopen("http://192.168.99.1/ajax/snapshot.jpg", timeout=0.2)
+            latest_image = np.asarray(bytearray(resp.read()), dtype="uint8")
+            self.curr_image = np.copy(latest_image)
+
+            threading.Timer(0.2, self.update_image).start()
+            # return Image.fromarray(self.latest_image)
+        
+        except timeout:
+            self.logger.debug("updating camera frame request timed out ... skipping")
+            threading.Timer(0.2, self.update_image).start()
+        except Exception as e:
+            threading.Timer(0.2, self.update_image).start()         
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s: %(message)s', level=logging.INFO)
