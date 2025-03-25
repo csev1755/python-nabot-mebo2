@@ -38,7 +38,6 @@ class RobotController():
         self.logger = logging.getLogger('Robot Controller')
         self.update_image()
         
-
     def init_robot(self):
         for cmd in self.init_commands:
             self.send_single_command_to_robot(cmd, 0)
@@ -115,23 +114,11 @@ class RobotController():
         time.sleep(2)
 
     def send_single_command_to_robot(self, cmd, value):
-
         URL = "http://192.168.99.1/ajax/command.json?" + self.generate_single_command(1, cmd, value)
         time.sleep(0.01)
         try:
             r = requests.get(url = URL, verify=False, timeout=1)
-            data = r.json()
-            
-            if 'response' in data:
-                aJsonString = data['response']
-                if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
-                    self.robot_state[0] = int(aJsonString[4:])
-                elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
-                    self.robot_state[1] = int(aJsonString[9:])
-                elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
-                    self.robot_state[2] = int(aJsonString[13:])
-                elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
-                    self.robot_state[3] = int(aJsonString[5:])
+            return r.json()
         except:
             self.logger.warning("Error parsing robot's response")
     
@@ -157,7 +144,16 @@ class RobotController():
 
     def update_joint_states(self):
         for cmd in self.robot_state_names:
-            self.send_single_command_to_robot(cmd, 0)
+            data = self.send_single_command_to_robot(cmd, 0)
+            aJsonString = data['response']
+            if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
+                self.robot_state[0] = int(aJsonString[4:])
+            elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
+                self.robot_state[1] = int(aJsonString[9:])
+            elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
+                self.robot_state[2] = int(aJsonString[13:])
+            elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
+                self.robot_state[3] = int(aJsonString[5:])
 
     def get_joint_states(self):
         return self.robot_state
@@ -261,7 +257,6 @@ class RobotController():
     def _to_base64(self, val):
         str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
         return "" + str[val & 63]
-
 
     def _encode_base64(self, val, chars_count):
         result = ""
