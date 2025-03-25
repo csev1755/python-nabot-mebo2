@@ -33,7 +33,7 @@ class GraphicalInterface():
 
         if 'robot_init_pos' in self.kwargs:
             self.logger.info('Sending robot to center.')
-            self.robot_ctrl.send_robot_to_center(goal=kwargs['robot_init_pos'])
+            self.robot_ctrl.send_robot_to_goal(goal=kwargs['robot_init_pos'])
             self.logger.info('Robot centered.')
             
         

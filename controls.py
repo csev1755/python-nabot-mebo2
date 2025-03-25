@@ -117,9 +117,6 @@ class RobotController():
         self.robot_cmd.open_gripper()
         self.move(Direction.BACKWARD, 25, 2)
         self.robot_cmd.send_robot_to_goal([100, 67, 48, 1])
-    
-    def send_robot_to_center(self, goal=[40, 50, 50, 0]):
-        self.send_robot_to_goal(goal=goal)
 
     def send_robot_to_goal(self, goal=[40, 50, 50, 0]):
         command = [0, 0, 0, 0, 0, 0]
