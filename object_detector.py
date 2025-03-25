@@ -71,9 +71,15 @@ class ObjectDetector():
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s: %(message)s', level=logging.INFO)
+
     object_detector = ObjectDetector()
     robot = RobotController()
-
     robot_image = robot.get_image()
-    bounding_boxes, lables, confidence = object_detector.predict(robot_image)
-    
+
+    bounding_boxes, labels, confidences = object_detector.predict(robot_image)
+
+    for i in range(len(bounding_boxes)):
+        print(f"Object {i + 1}:")
+        print(f"  Label: {labels[i]}")
+        print(f"  Bounding Box: {bounding_boxes[i]}")
+        print(f"  Confidence: {confidences[i]:.2f}")

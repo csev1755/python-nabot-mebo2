@@ -137,12 +137,3 @@ class RobotController():
             threading.Timer(0.2, self.update_image).start()
         except Exception as e:
             threading.Timer(0.2, self.update_image).start()         
-
-if __name__ == "__main__":
-    logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s: %(message)s', level=logging.INFO)
-    robot = RobotController()
-
-    robot.update_joint_states()
-    print(robot.get_joint_states())
-    
-    robot.move(Direction.FORWARD, power=30, steps=2)
