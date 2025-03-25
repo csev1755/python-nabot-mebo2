@@ -52,7 +52,7 @@ class RobotController():
         if milliseconds > 0:
             time.sleep(milliseconds/1000)
         
-        self.robot_cmd.send_joint_command_to_robot(self.stop_command)
+        self.send_joint_command_to_robot(self.stop_command)
 
     def wait(self, milliseconds:float):
         if milliseconds > 0:
@@ -68,10 +68,10 @@ class RobotController():
         self.logger.info("sending the rotate to {} for {} steps".format(direction.name, steps))
 
         for i in range(steps):
-            self.robot_cmd.send_joint_command_to_robot(wheels_command)
+            self.send_joint_command_to_robot(wheels_command)
             time.sleep(.5)
         
-        self.robot_cmd.send_joint_command_to_robot([0.0, 0.0])
+        self.send_joint_command_to_robot([0.0, 0.0])
 
     def move(self, direction: Direction, power:float, steps: int):
         wheels_command = [0.0, 0.0]
@@ -83,20 +83,20 @@ class RobotController():
         self.logger.info("sending the Move {} for {} steps".format(direction.name, steps))
 
         for i in range(steps):
-            self.robot_cmd.send_joint_command_to_robot(wheels_command)
+            self.send_joint_command_to_robot(wheels_command)
             time.sleep(.5)
         
-        self.robot_cmd.send_joint_command_to_robot([0.0, 0.0])
+        self.send_joint_command_to_robot([0.0, 0.0])
 
     def goto_position(self, joints: List[int]):
-        self.robot_cmd.send_robot_to_goal(goal=joints)
+        self.send_robot_to_goal(goal=joints)
 
     def open_gripper(self):
-        self.robot_cmd.send_joint_command_to_robot([0, 0, 0, 0, 0, 1])
+        self.send_joint_command_to_robot([0, 0, 0, 0, 0, 1])
         time.sleep(2)
 
     def close_gripper(self):
-        self.robot_cmd.send_joint_command_to_robot([0, 0, 0, 0, 0, 100])
+        self.send_joint_command_to_robot([0, 0, 0, 0, 0, 100])
         time.sleep(2)    
 
     def toggle_claw_led(self):
@@ -107,16 +107,16 @@ class RobotController():
             self.robot_cmd.send_single_command_to_robot("LIGHT_ON", 1)
 
     def pick(self):
-        self.robot_cmd.send_robot_to_goal([100, 67, 48, 1])
-        self.robot_cmd.close_gripper()
-        self.robot_cmd.send_robot_to_goal([90, 67, 48, 100])
+        self.send_robot_to_goal([100, 67, 48, 1])
+        self.close_gripper()
+        self.send_robot_to_goal([90, 67, 48, 100])
 
     def place(self):
-        self.robot_cmd.send_robot_to_goal([65, 67, 48, 100])
+        self.send_robot_to_goal([65, 67, 48, 100])
         self.move(Direction.FORWARD, 25, 2)
-        self.robot_cmd.open_gripper()
+        self.open_gripper()
         self.move(Direction.BACKWARD, 25, 2)
-        self.robot_cmd.send_robot_to_goal([100, 67, 48, 1])
+        self.send_robot_to_goal([100, 67, 48, 1])
 
     def send_robot_to_goal(self, goal=[40, 50, 50, 0]):
         command = [0, 0, 0, 0, 0, 0]
