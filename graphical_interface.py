@@ -184,4 +184,11 @@ class GraphicalInterface():
             self.scale4.pack(side='top')
 
 
+            def button1_command():
+                self.robot_ctrl.toggle_claw_led()
+
+            self.button1 = Button(text="Claw LED", command=button1_command)
+            self.button1.pack(side='top')
+
+
         create_canvas()

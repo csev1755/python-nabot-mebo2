@@ -183,9 +183,9 @@ class RobotCommands():
         if ( cmd == "BAT"):
             return "BAT=?"
         elif ( cmd == "LIGHT_ON"):
-            return self.new_cmd() + "RAAAAAAAVd"
+            return self.new_cmd() + "RAAAAAAAad"
         elif ( cmd == "LIGHT_OFF"):
-            return self.new_cmd() + "RAAAAAAAVc"
+            return self.new_cmd() + "RAAAAAAAac"
 
         elif ( cmd == "WHEEL_LEFT_FORWARD"):
             return self.new_cmd() + "F" + self.enc_spd(para)
