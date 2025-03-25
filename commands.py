@@ -8,7 +8,7 @@ import urllib
 import cv2
 import threading
 
-class RobotController():
+class RobotCommands():
     robot_state = [0, 0, 0, 0] # arm, wrist_ud, wrist_rot, gripper
     robot_command = [0, 0, 0, 0, 0, 0] # forward, left_right, arm, wrist_ud, wrist_rot, gripper
     last_robot_command = [0, 0, 0, 0, 0, 0] # forward, left_right, arm, wrist_ud, wrist_rot, gripper
@@ -23,19 +23,19 @@ class RobotController():
     @staticmethod
     def getInstance(*args, **kwargs):
       """ Static access method. """
-      if RobotController.__instance == None:
-         RobotController(*args, **kwargs)
-      return RobotController.__instance
+      if RobotCommands.__instance == None:
+         RobotCommands(*args, **kwargs)
+      return RobotCommands.__instance
     
     def __init__(self, *args, **kwargs):
         self.curr_image = None
         """ Virtually private constructor. """
-        if RobotController.__instance != None:
-            raise Exception("RobotController is a singleton!")
+        if RobotCommands.__instance != None:
+            raise Exception("RobotCommands is a singleton!")
         else:
-            RobotController.__instance = self
+            RobotCommands.__instance = self
 
-        self.logger = logging.getLogger('Robot Controller')
+        self.logger = logging.getLogger('Robot Commands')
         self.update_image()
         
     def init_robot(self):
@@ -104,14 +104,6 @@ class RobotController():
                 loop_counter += 1
                 
         self.logger.info('Went to goal position.')
-
-    def open_gripper(self, ):
-        self.send_joint_command_to_robot([0, 0, 0, 0, 0, 1])
-        time.sleep(2)
-
-    def close_gripper(self, ):
-        self.send_joint_command_to_robot([0, 0, 0, 0, 0, 100])
-        time.sleep(2)
 
     def send_single_command_to_robot(self, cmd, value, retries=5, delay=0.5):
         URL = "http://192.168.99.1/ajax/command.json?" + self.generate_single_command(1, cmd, value)

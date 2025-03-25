@@ -11,7 +11,7 @@ import tkinter as tk
 from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL
 import datetime
 
-from robot_controller import RobotController
+from controls import RobotController
 
 class GraphicalInterface():
     def __init__(self, *args, **kwargs):
@@ -29,10 +29,7 @@ class GraphicalInterface():
         self.joint_states = []
         self.num_empty_commands = 0
 
-        self.robot_ctrl = RobotController.getInstance(*args, **kwargs)
-        self.logger.info('initializing robot...')
-        self.robot_ctrl.init_robot()
-        self.logger.info('robot successfully initilized')
+        self.robot_ctrl = RobotController()
 
         if 'robot_init_pos' in self.kwargs:
             self.logger.info('Sending robot to center.')

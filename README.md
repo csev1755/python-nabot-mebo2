@@ -34,26 +34,25 @@ python3 manual_control.py
 ```
 This will open two windows: one displaying the robot's camera feed and another for controlling the robot. Some occasional request timeouts may appear in the logs which is normal.
 
-In addition to manual control, you can control the robot programmatically using the `NabotController` class found in `nabot_controller.py`.
+In addition to manual control, you can control the robot programmatically using the `RobotController` class found in `controls.py`.
 
 ### Example: Move the Robot
 ```python
-from nabot_controller import NabotController
+from controls import RobotController
 from direction import Direction
 
-nabot = NabotController()
-nabot.move(Direction.FORWARD, power=30, steps=2)
+robot = RobotController()
+robot.move(Direction.FORWARD, power=30, steps=2)
 ```
 
 ### Example: Retrieve Joint States
 ```python
-from nabot_controller import NabotController
+from controls import RobotController
 
-nabot = NabotController()
-nabot.update_joint_states()
-print(nabot.get_joint_states())
+robot = RobotController()
+robot.update_joint_states()
+print(robot.get_joint_states())
 ```
-You can extend the `NabotController` class to add more functionalities as needed.
 
 ## Object Detection
 
@@ -62,11 +61,11 @@ Object detection allows the robot to analyze images and detect objects using a n
 ### Example: Detect Objects in an Image
 ```python
 from object_detector import ObjectDetector
-from nabot_controller import NabotController
+from controls import RobotController
 
 object_detector = ObjectDetector()
-nabot = NabotController()
-robot_image = nabot.get_image()
+robot = RobotController()
+robot_image = robot.get_image()
 
 bounding_boxes, labels, confidences = object_detector.predict(robot_image)
 

@@ -2,7 +2,7 @@ import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
 from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
-from nabot_controller import NabotController
+from controls import RobotController
 import logging
 import numpy as np
 from PIL import Image
@@ -72,8 +72,8 @@ class ObjectDetector():
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s: %(message)s', level=logging.INFO)
     object_detector = ObjectDetector()
-    nabot = NabotController()
+    robot = RobotController()
 
-    robot_image = nabot.get_image()
+    robot_image = robot.get_image()
     bounding_boxes, lables, confidence = object_detector.predict(robot_image)
     
