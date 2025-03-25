@@ -1,13 +1,10 @@
 import time
 import requests
-import numpy as np
 import logging
 
 class RobotCommands():
-    robot_state = [0, 0, 0, 0] # arm, wrist_ud, wrist_rot, gripper
     robot_command = [0, 0, 0, 0, 0, 0] # forward, left_right, arm, wrist_ud, wrist_rot, gripper
     last_robot_command = [0, 0, 0, 0, 0, 0] # forward, left_right, arm, wrist_ud, wrist_rot, gripper
-    robot_state_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
     
     messageCount = 0
@@ -30,42 +27,6 @@ class RobotCommands():
 
         self.logger = logging.getLogger('Robot Commands')
 
-    def send_robot_to_center(self, goal=[40, 50, 50, 0]):
-        self.send_robot_to_goal(goal=goal)
-
-    def send_robot_to_goal(self, goal=[40, 50, 50, 0]):
-        command = [0, 0, 0, 0, 0, 0]
-        goal = np.asarray(goal).astype(np.float32)
-        loop_counter = 0
-        last_command_time = time.time()
-        while(True):
-            if time.time() - last_command_time > .1:
-                self.update_joint_states()
-                time.sleep(.1)
-                joint_states = np.asarray(self.get_joint_states()).astype(np.float32)
-                self.logger.debug(joint_states)
-                diff = (goal - joint_states ) * 6
-                diff[2] /= 4
-                for i, d in enumerate(diff[:-1]):
-                    diff[i] = min( 30, max(diff[i], -30))
-                #     if -5 < d < 5:
-                #         diff[i] = 0
-                diff[0] = -diff[0]
-                self.logger.debug(diff)
-                self.logger.debug(np.max(np.abs(diff[:-1])))
-                print(diff )
-                if np.max(np.abs(diff[:-1])) < 10 or loop_counter > 10:
-                    self.send_joint_command_to_robot([0, 0, 0, 0, 0, goal[-1]])
-                    break
-                # if np.all(joint_states > 0.1) or loop_counter > 10:
-                command[2:5] = diff[:-1]
-                command[5] = goal[3]
-                self.send_joint_command_to_robot(command)
-                last_command_time = time.time()
-                loop_counter += 1
-                
-        self.logger.info('Went to goal position.')
-
     def send_single_command_to_robot(self, cmd, value, retries=5, delay=0.5):
         URL = "http://192.168.99.1/ajax/command.json?" + self.generate_single_command(1, cmd, value)
 
@@ -78,9 +39,6 @@ class RobotCommands():
                 time.sleep(delay)
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
-    
-    def send_joint_command_to_robot(self, jointValues, use_thread=False):
-        self.send_joint_command_to_robot_helper(jointValues)
     
     def send_joint_command_to_robot_helper(self, jointValues):
         self.robot_command = jointValues
@@ -98,25 +56,6 @@ class RobotCommands():
             self.logger.warning("request timeout")
         except Exception as e:
             self.logger.warning(e)
-
-    def update_joint_states(self):
-        for cmd in self.robot_state_names:
-            try:
-                data = self.send_single_command_to_robot(cmd, 0)
-                aJsonString = data['response']
-                if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
-                    self.robot_state[0] = int(aJsonString[4:])
-                elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
-                    self.robot_state[1] = int(aJsonString[9:])
-                elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
-                    self.robot_state[2] = int(aJsonString[13:])
-                elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
-                    self.robot_state[3] = int(aJsonString[5:])
-            except:
-                self.logger.warning("Error parsing robot's response")
-
-    def get_joint_states(self):
-        return self.robot_state
 
     def generate_single_command(self, number, command, parameter):
         cmd_str = self._command_string(command, parameter)
