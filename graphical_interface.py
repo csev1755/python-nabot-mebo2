@@ -192,3 +192,10 @@ class GraphicalInterface():
 
 
         create_canvas()
+
+if __name__ == "__main__":
+    logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s: %(message)s', level=logging.INFO)
+    app = GraphicalInterface(image_size=(1280, 720),
+                            robot_init_pos=[100, 75, 50, 0],
+                            logging_level = 'INFO')
+    app.run()    

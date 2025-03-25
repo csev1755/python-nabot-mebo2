@@ -28,13 +28,13 @@ pip3 install -r requirements.txt
 
 ## Usage
 
-To manually control the robot, ensure you are connected to it via WiFi, then run:
+To control the robot with a GUI, ensure you are connected to it via WiFi, then run:
 ```
-python3 manual_control.py
+python3 graphical_interface.py
 ```
 This will open two windows: one displaying the robot's camera feed and another for controlling the robot. Some occasional request timeouts may appear in the logs which is normal.
 
-In addition to manual control, you can control the robot programmatically using the `RobotController` class found in `controls.py`.
+You can control the robot programmatically using the `RobotController` class found in `controls.py`.
 
 ### Example: Move the Robot
 ```python
