@@ -58,7 +58,7 @@ print(robot.get_joint_states())
 
 Object detection allows the robot to analyze images and detect objects using a neural network.
 
-You can try out this funcitonality by running:
+You can try out this functionality by running:
 
 ```
 python3 object_detector.py
@@ -69,7 +69,7 @@ The `ObjectDetector` class can be used separately as well along with `RobotImagi
 ### Example: Detect Objects in an Image
 ```python
 from object_detector import ObjectDetector
-from imaging import RobotImaging()
+from imaging import RobotImaging
 
 object_detector = ObjectDetector()
 robot = RobotImaging()
