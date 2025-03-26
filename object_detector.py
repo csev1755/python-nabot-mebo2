@@ -2,11 +2,9 @@ import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
 from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
-from controls import RobotController
+from imaging import RobotImaging
 import logging
 import numpy as np
-from PIL import Image
-import random
 import time
 
 class ObjectDetector():
@@ -45,7 +43,6 @@ class ObjectDetector():
         ]
 
 
-
     def predict(self, images):
         input_image = self.normalize_input(images)
 
@@ -73,7 +70,7 @@ if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s: %(message)s', level=logging.INFO)
 
     object_detector = ObjectDetector()
-    robot = RobotController()
+    robot = RobotImaging()
     robot_image = robot.get_image()
 
     bounding_boxes, labels, confidences = object_detector.predict(robot_image)

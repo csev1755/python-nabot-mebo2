@@ -64,15 +64,15 @@ You can try out this funcitonality by running:
 python3 object_detector.py
 ```
 
-The `ObjectDetector` class can be used separately as well.
+The `ObjectDetector` class can be used separately as well along with `RobotImaging`.
 
 ### Example: Detect Objects in an Image
 ```python
 from object_detector import ObjectDetector
-from controls import RobotController
+from imaging import RobotImaging()
 
 object_detector = ObjectDetector()
-robot = RobotController()
+robot = RobotImaging()
 robot_image = robot.get_image()
 
 bounding_boxes, labels, confidences = object_detector.predict(robot_image)

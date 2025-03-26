@@ -1,17 +1,14 @@
 import numpy as np
-import os
 import cv2
-import signal
-import sys
 import logging
 import threading
 
 import tkinter.ttk as ttk
 import tkinter as tk
 from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL
-import datetime
 
 from controls import RobotController
+from imaging import RobotImaging
 
 class GraphicalInterface():
     def __init__(self, *args, **kwargs):
@@ -30,6 +27,7 @@ class GraphicalInterface():
         self.num_empty_commands = 0
 
         self.robot_ctrl = RobotController()
+        self.robot_img = RobotImaging()
 
         if 'robot_init_pos' in self.kwargs:
             self.logger.info('Sending robot to center.')
@@ -72,7 +70,7 @@ class GraphicalInterface():
         self.parent.mainloop()   
 
     def robot_controller(self):
-        self.curr_image = self.robot_ctrl.get_image_cv2()
+        self.curr_image = self.robot_img.get_image_cv2()
         if self.curr_image is None:
             self.parent.after(10, self.robot_controller)
             return
