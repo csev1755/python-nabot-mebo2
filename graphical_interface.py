@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import logging
 import threading
-
+import sys
 import tkinter.ttk as ttk
 import tkinter as tk
 from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL
@@ -66,8 +66,24 @@ class GraphicalInterface():
         #     sys.exit(0)
 
         # signal.signal(signal.SIGINT, signal_handler)  
+        self.parent.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.parent.mainloop()  
 
-        self.parent.mainloop()   
+    def on_closing(self):
+        """Handle cleanup before closing the application."""
+        self.logger.info("Stopping Robot...")
+        self.stop_robot = True
+        self.robot_ctrl.send_joint_command_to_robot([0, 0, 0, 0, 0, 0])
+        
+        self.robot_img.stop()  # Stop the image update thread
+
+        cv2.destroyAllWindows()  # Close OpenCV windows
+        self.parent.quit()  # Exit the Tkinter main loop
+        self.parent.destroy()  # Destroy the window to free resources
+
+        # Force exit if any threads are still running
+
+        sys.exit(0)        
 
     def robot_controller(self):
         self.curr_image = self.robot_img.get_image_cv2()

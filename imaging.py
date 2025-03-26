@@ -9,6 +9,7 @@ from socket import timeout
 class RobotImaging():
     def __init__(self):
         self.curr_image = None
+        self.stop_threads = False
         self.update_image()
 
     def get_image(self):
@@ -28,18 +29,26 @@ class RobotImaging():
         return Image.fromarray(cv2.cvtColor(opencv_im, cv2.COLOR_BGR2RGB))
 
     def update_image(self):
-        # download the image, convert it to a NumPy array, and then read
-        # it into OpenCV format
+        if self.stop_threads:
+            return  # Stop updating if the flag is set
+
         try:
             resp = urllib.request.urlopen("http://192.168.99.1/ajax/snapshot.jpg", timeout=0.2)
             latest_image = np.asarray(bytearray(resp.read()), dtype="uint8")
             self.curr_image = np.copy(latest_image)
 
-            threading.Timer(0.2, self.update_image).start()
-            # return Image.fromarray(self.latest_image)
-        
         except timeout:
-            self.logger.debug("updating camera frame request timed out ... skipping")
-            threading.Timer(0.2, self.update_image).start()
+            self.logger.debug("Updating camera frame request timed out ... skipping")
         except Exception as e:
-            threading.Timer(0.2, self.update_image).start()  
+            self.logger.error(f"Error updating image: {e}")
+
+        # Restart the timer only if the flag is not set
+        if not self.stop_threads:
+            self.timer = threading.Timer(0.2, self.update_image)
+            self.timer.start()
+
+    def stop(self):
+        """Stop the update loop and cleanup resources."""
+        self.stop_threads = True
+        if hasattr(self, "timer"):
+            self.timer.cancel()
