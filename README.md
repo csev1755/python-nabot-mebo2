@@ -28,11 +28,11 @@ pip3 install -r requirements.txt
 
 ## Usage
 
-To control the robot with a GUI, ensure you are connected to it via WiFi, then run:
+To control the robot with a GUI, ensure ffplay/ffmpeg is installed then run:
 ```
 python3 graphical_interface.py
 ```
-This will open two windows: one displaying the robot's camera feed and another for controlling the robot. Some occasional request timeouts may appear in the logs which is normal.
+This will open two windows: one displaying the robot's camera feed and another for controlling the robot.
 
 You can control the robot programmatically using the `RobotController` class found in `controls.py`.
 
