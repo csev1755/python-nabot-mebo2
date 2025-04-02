@@ -62,7 +62,7 @@ class GraphicalInterface():
         #     cv2.destroyAllWindows()
         #     self.logger.info("Stopping Robot...")
         #     self.stop_robot = True
-        #     self.robot_ctrl.send_joint_command_to_robot([0, 0, 0, 0, 0, 0], use_thread=False)
+        #     self.robot_ctrl.set_values([0, 0, 0, 0, 0, 0], use_thread=False)
         #     sys.exit(0)
 
         # signal.signal(signal.SIGINT, signal_handler)  
@@ -73,7 +73,7 @@ class GraphicalInterface():
         """Handle cleanup before closing the application."""
         self.logger.info("Stopping Robot...")
         self.stop_robot = True
-        self.robot_ctrl.send_joint_command_to_robot([0, 0, 0, 0, 0, 0])
+        self.robot_ctrl.set_values([0, 0, 0, 0, 0, 0])
         
         self.robot_img.stop()  # Stop the image update thread
 
@@ -109,7 +109,7 @@ class GraphicalInterface():
             command_to_send = [x, y, self.scale1.get(), self.scale2.get(), self.scale4.get(), self.scale3.get()]
         
 
-            self.robot_ctrl.send_joint_command_to_robot(command_to_send)
+            self.robot_ctrl.set_values(command_to_send)
             # self.robot_ctrl.update_joint_states()
         
         self.parent.after(10, self.robot_controller)
