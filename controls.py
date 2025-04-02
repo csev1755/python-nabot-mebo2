@@ -81,9 +81,6 @@ class RobotController():
         
         self.set_values([0.0, 0.0])
 
-    def goto_position(self, joints: List[int]):
-        self.send_robot_to_goal(goal=joints)
-
     def open_gripper(self):
         self.set_values([0, 0, 0, 0, 0, 1])
         time.sleep(2)
