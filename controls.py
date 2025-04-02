@@ -16,13 +16,13 @@ class RobotController():
         self.init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
         self.logger = logging.getLogger("Robot Controller")
         for cmd in self.init_commands:
-            self.robot_cmd.send_single_command_to_robot(cmd, 0)
+            self.robot_cmd.send_single_command(cmd, 0)
         self.logger.info('Initialized robot')
 
     def update_joint_states(self):
         for cmd in self.robot_state_names:
             try:
-                data = self.robot_cmd.send_single_command_to_robot(cmd, 0)
+                data = self.robot_cmd.send_single_command(cmd, 0)
                 aJsonString = data['response']
                 if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
                     self.robot_state[0] = int(aJsonString[4:])
@@ -38,14 +38,14 @@ class RobotController():
     def get_joint_states(self):
         return self.robot_state
     
-    def send_joint_command_to_robot(self, jointValues):
-        self.robot_cmd.send_joint_command_to_robot_helper(jointValues)
+    def set_values(self, jointValues):
+        self.robot_cmd.send_joined_command(jointValues)
 
     def stop(self, milliseconds:float = 0):
         if milliseconds > 0:
             time.sleep(milliseconds/1000)
         
-        self.send_joint_command_to_robot(self.stop_command)
+        self.set_values(self.stop_command)
 
     def wait(self, milliseconds:float):
         if milliseconds > 0:
@@ -61,10 +61,10 @@ class RobotController():
         self.logger.info("sending the rotate to {} for {} steps".format(direction.name, steps))
 
         for i in range(steps):
-            self.send_joint_command_to_robot(wheels_command)
+            self.set_values(wheels_command)
             time.sleep(.5)
         
-        self.send_joint_command_to_robot([0.0, 0.0])
+        self.set_values([0.0, 0.0])
 
     def move(self, direction: Direction, power:float, steps: int):
         wheels_command = [0.0, 0.0]
@@ -76,28 +76,28 @@ class RobotController():
         self.logger.info("sending the Move {} for {} steps".format(direction.name, steps))
 
         for i in range(steps):
-            self.send_joint_command_to_robot(wheels_command)
+            self.set_values(wheels_command)
             time.sleep(.5)
         
-        self.send_joint_command_to_robot([0.0, 0.0])
+        self.set_values([0.0, 0.0])
 
     def goto_position(self, joints: List[int]):
         self.send_robot_to_goal(goal=joints)
 
     def open_gripper(self):
-        self.send_joint_command_to_robot([0, 0, 0, 0, 0, 1])
+        self.set_values([0, 0, 0, 0, 0, 1])
         time.sleep(2)
 
     def close_gripper(self):
-        self.send_joint_command_to_robot([0, 0, 0, 0, 0, 100])
+        self.set_values([0, 0, 0, 0, 0, 100])
         time.sleep(2)    
 
     def toggle_claw_led(self):
-        response = self.robot_cmd.send_single_command_to_robot("CLAW_LED_STATE")
+        response = self.robot_cmd.send_single_command("CLAW_LED_STATE")
         if response['response'] == "ON":
-            self.robot_cmd.send_single_command_to_robot("LIGHT_OFF")
+            self.robot_cmd.send_single_command("LIGHT_OFF")
         else:
-            self.robot_cmd.send_single_command_to_robot("LIGHT_ON")
+            self.robot_cmd.send_single_command("LIGHT_ON")
 
     def pick(self):
         self.send_robot_to_goal([100, 67, 48, 1])
@@ -133,12 +133,12 @@ class RobotController():
                 self.logger.debug(np.max(np.abs(diff[:-1])))
                 print(diff )
                 if np.max(np.abs(diff[:-1])) < 10 or loop_counter > 10:
-                    self.send_joint_command_to_robot([0, 0, 0, 0, 0, goal[-1]])
+                    self.set_values([0, 0, 0, 0, 0, goal[-1]])
                     break
                 # if np.all(joint_states > 0.1) or loop_counter > 10:
                 command[2:5] = diff[:-1]
                 command[5] = goal[3]
-                self.send_joint_command_to_robot(command)
+                self.set_values(command)
                 last_command_time = time.time()
                 loop_counter += 1
                 

@@ -27,7 +27,7 @@ class RobotCommands():
 
         self.logger = logging.getLogger('Robot Commands')
 
-    def send_single_command_to_robot(self, cmd, value=None, retries=5, delay=0.5):
+    def send_single_command(self, cmd, value=None, retries=5, delay=0.5):
         URL = "http://192.168.99.1/ajax/command.json?" + self.generate_single_command(1, cmd, value)
 
         for attempt in range(retries):
@@ -40,7 +40,7 @@ class RobotCommands():
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
     
-    def send_joint_command_to_robot_helper(self, jointValues):
+    def send_joined_command(self, jointValues):
         self.robot_command = jointValues
         URL = "http://192.168.99.1/ajax/command.json?"
 
