@@ -2,12 +2,14 @@ import time
 import numpy as np
 import urllib
 import cv2
+import logging
 import threading
 from PIL import Image
 from socket import timeout
 
 class RobotImaging():
     def __init__(self):
+        self.logger = logging.getLogger("Robot Imaging")
         self.curr_image = None
         self.stop_threads = False
         self.update_image()
