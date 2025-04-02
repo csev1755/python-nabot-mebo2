@@ -27,7 +27,7 @@ class RobotCommands():
 
         self.logger = logging.getLogger('Robot Commands')
 
-    def send_single_command_to_robot(self, cmd, value, retries=5, delay=0.5):
+    def send_single_command_to_robot(self, cmd, value=None, retries=5, delay=0.5):
         URL = "http://192.168.99.1/ajax/command.json?" + self.generate_single_command(1, cmd, value)
 
         for attempt in range(retries):
@@ -151,7 +151,9 @@ class RobotCommands():
         return result
 
     def enc_spd(self, speed):
-        return self._encode_base64(speed, 2)
+        if speed:
+            return self._encode_base64(speed, 2)
+        else: return ""
     
     def _to_base64(self, val):
         str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
