@@ -1,6 +1,6 @@
 import time
 import numpy as np
-import urllib
+import urllib.request
 import cv2
 import logging
 import threading
@@ -12,16 +12,18 @@ class RobotImaging():
         self.logger = logging.getLogger("Robot Imaging")
         self.curr_image = None
         self.stop_threads = False
-        self.update_image()
+        self.stream_url = "http://192.168.99.1/ajax/snapshot.jpg"
+        self.thread = threading.Thread(target=self.update_image, daemon=True)
+        self.thread.start()
 
     def get_image(self):
-        im = self.get_latest_image()
-        while im is None:
-            time.sleep(1)
-            im = self.get_latest_image()
-        return im
-    
+        while self.curr_image is None:
+            time.sleep(0.01)
+        return self.get_latest_image()
+
     def get_image_cv2(self):
+        if self.curr_image is None:
+            return None
         return cv2.imdecode(self.curr_image, cv2.IMREAD_COLOR)
 
     def get_latest_image(self):
@@ -31,26 +33,16 @@ class RobotImaging():
         return Image.fromarray(cv2.cvtColor(opencv_im, cv2.COLOR_BGR2RGB))
 
     def update_image(self):
-        if self.stop_threads:
-            return  # Stop updating if the flag is set
-
-        try:
-            resp = urllib.request.urlopen("http://192.168.99.1/ajax/snapshot.jpg", timeout=0.2)
-            latest_image = np.asarray(bytearray(resp.read()), dtype="uint8")
-            self.curr_image = np.copy(latest_image)
-
-        except timeout:
-            self.logger.debug("Updating camera frame request timed out ... skipping")
-        except Exception as e:
-            self.logger.error(f"Error updating image: {e}")
-
-        # Restart the timer only if the flag is not set
-        if not self.stop_threads:
-            self.timer = threading.Timer(0.2, self.update_image)
-            self.timer.start()
+        while not self.stop_threads:
+            try:
+                with urllib.request.urlopen(self.stream_url, timeout=0.2) as resp:
+                    latest_image = np.asarray(bytearray(resp.read()), dtype="uint8")
+                    self.curr_image = np.copy(latest_image)
+            except timeout:
+                self.logger.debug("Updating camera frame request timed out ... skipping")
+            except Exception as e:
+                self.logger.error(f"Error updating image: {e}")
 
     def stop(self):
-        """Stop the update loop and cleanup resources."""
         self.stop_threads = True
-        if hasattr(self, "timer"):
-            self.timer.cancel()
+        self.thread.join()  # Ensure the background thread stops safely
