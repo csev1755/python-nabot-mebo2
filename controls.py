@@ -93,11 +93,11 @@ class RobotController():
         time.sleep(2)    
 
     def toggle_claw_led(self):
-        response = self.robot_cmd.send_single_command_to_robot("CLAW_LED_STATE", 1)
+        response = self.robot_cmd.send_single_command_to_robot("CLAW_LED_STATE")
         if response['response'] == "ON":
-            self.robot_cmd.send_single_command_to_robot("LIGHT_OFF", 1)
+            self.robot_cmd.send_single_command_to_robot("LIGHT_OFF")
         else:
-            self.robot_cmd.send_single_command_to_robot("LIGHT_ON", 1)
+            self.robot_cmd.send_single_command_to_robot("LIGHT_ON")
 
     def pick(self):
         self.send_robot_to_goal([100, 67, 48, 1])
