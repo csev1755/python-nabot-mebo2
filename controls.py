@@ -45,29 +45,23 @@ class RobotController():
         
         self.set_values(self.stop_command)
 
-    def left(self, power:float, steps=1):
+    def do_steps(self, command: list[float], steps=1):
         for i in range(steps):
-            self.set_values([-power, power])
-            time.sleep(.5)
+            self.set_values(command)
+            time.sleep(0.5)
         self.set_values([0.0, 0.0])
 
-    def right(self, power:float, steps=1):
-        for i in range(steps):
-            self.set_values([power, -power])
-            time.sleep(.5)
-        self.set_values([0.0, 0.0])
+    def left(self, power: float, steps=1):
+        self.do_steps([-power, power], steps)
 
-    def forward(self, power:float, steps=1):
-        for i in range(steps):
-            self.set_values([power, power])
-            time.sleep(.5)
-        self.set_values([0.0, 0.0])
+    def right(self, power: float, steps=1):
+        self.do_steps([power, -power], steps)
 
-    def backward(self, power:float, steps=1):
-        for i in range(steps):
-            self.set_values([-power, -power])
-            time.sleep(.5)
-        self.set_values([0.0, 0.0])                
+    def forward(self, power: float, steps=1):
+        self.do_steps([power, power], steps)
+
+    def backward(self, power: float, steps=1):
+        self.do_steps([-power, -power], steps)            
 
     def open_gripper(self):
         self.set_values([0, 0, 0, 0, 0, 1])
