@@ -85,18 +85,18 @@ class RobotController():
             self.robot_cmd.send_single_command("LIGHT_ON")
 
     def pick(self):
-        self.send_robot_to_goal([100, 67, 48, 1])
+        self.set_joint_positions([100, 67, 48, 1])
         self.close_gripper()
-        self.send_robot_to_goal([90, 67, 48, 100])
+        self.set_joint_positions([90, 67, 48, 100])
 
     def place(self):
-        self.send_robot_to_goal([65, 67, 48, 100])
+        self.set_joint_positions([65, 67, 48, 100])
         self.forward(25, 2)
         self.open_gripper()
         self.backward(25, 2)
-        self.send_robot_to_goal([100, 67, 48, 1])
+        self.set_joint_positions([100, 67, 48, 1])
 
-    def send_robot_to_goal(self, goal=[40, 50, 50, 0]):
+    def set_joint_positions(self, goal=[40, 50, 50, 0]):
         command = [0, 0, 0, 0, 0, 0]
         goal = np.asarray(goal).astype(np.float32)
         loop_counter = 0
