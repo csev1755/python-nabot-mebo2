@@ -47,10 +47,6 @@ class RobotController():
         
         self.set_values(self.stop_command)
 
-    def wait(self, milliseconds:float):
-        if milliseconds > 0:
-            time.sleep(milliseconds/1000)
-
     def rotate(self, direction: Direction, power:float, steps=1):
         wheels_command = [0.0, 0.0]
         if direction == Direction.LEFT or direction == Direction.CCW:
