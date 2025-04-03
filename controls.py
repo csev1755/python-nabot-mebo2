@@ -90,35 +90,43 @@ class RobotController():
         self.backward(25, 2)
         self.set_joint_positions([100, 67, 48, 1])
 
-    def set_joint_positions(self, goal=[40, 50, 50, 0]):
+    def set_joint_positions(self, goal, max_loops=15, max_speed=20, stop_threshold=3):
+        if goal is None or len(goal) != 4:
+            raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
+
         command = [0, 0, 0, 0, 0, 0]
-        goal = np.asarray(goal).astype(np.float32)
+        current_states = np.asarray(self.get_joint_states()).astype(np.float32)
+
+        goal = np.array([g if g is not None else c for g, c in zip(goal, current_states)], dtype=np.float32)
+
         loop_counter = 0
         last_command_time = time.time()
-        while(True):
-            if time.time() - last_command_time > .1:
+
+        while True:
+            if time.time() - last_command_time > 0.1:
                 self.update_joint_states()
-                time.sleep(.1)
+                time.sleep(0.1)
                 joint_states = np.asarray(self.get_joint_states()).astype(np.float32)
                 self.logger.debug(joint_states)
-                diff = (goal - joint_states ) * 6
-                diff[2] /= 4
+
+                diff = (goal - joint_states) * 6
+                diff[2] /= 4 
+
                 for i, d in enumerate(diff[:-1]):
-                    diff[i] = min( 30, max(diff[i], -30))
-                #     if -5 < d < 5:
-                #         diff[i] = 0
+                    diff[i] = min(max_speed, max(diff[i], -max_speed))
+
                 diff[0] = -diff[0]
                 self.logger.debug(diff)
                 self.logger.debug(np.max(np.abs(diff[:-1])))
-                print(diff )
-                if np.max(np.abs(diff[:-1])) < 10 or loop_counter > 10:
+
+                if np.max(np.abs(diff[:-1])) < stop_threshold or loop_counter > max_loops:
                     self.set_values([0, 0, 0, 0, 0, goal[-1]])
                     break
-                # if np.all(joint_states > 0.1) or loop_counter > 10:
+
                 command[2:5] = diff[:-1]
                 command[5] = goal[3]
                 self.set_values(command)
+
                 last_command_time = time.time()
                 loop_counter += 1
                 
-        self.logger.info('Went to goal position.')                
