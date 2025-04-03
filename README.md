@@ -39,10 +39,9 @@ You can control the robot programmatically using the `RobotController` class fou
 ### Example: Move the Robot
 ```python
 from controls import RobotController
-from direction import Direction
 
 robot = RobotController()
-robot.move(Direction.FORWARD, power=30, steps=2)
+robot.forward(power=30, steps=2)
 ```
 
 ### Example: Retrieve Joint States

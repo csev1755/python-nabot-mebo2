@@ -1,10 +1,8 @@
 import time
 import numpy as np
 import logging
-from typing import List
 
 from commands import RobotCommands
-from direction import Direction
 
 class RobotController():
     robot_state = [0, 0, 0, 0] # arm, wrist_ud, wrist_rot, gripper
@@ -47,35 +45,29 @@ class RobotController():
         
         self.set_values(self.stop_command)
 
-    def rotate(self, direction: Direction, power:float, steps=1):
-        wheels_command = [0.0, 0.0]
-        if direction == Direction.LEFT or direction == Direction.CCW:
-            wheels_command = [-power, power]
-        if direction == Direction.RIGHT or direction == Direction.CW:
-            wheels_command = [power, -power]
-        
-        self.logger.info("sending the rotate to {} for {} steps".format(direction.name, steps))
-
+    def left(self, power:float, steps=1):
         for i in range(steps):
-            self.set_values(wheels_command)
+            self.set_values([-power, power])
             time.sleep(.5)
-        
         self.set_values([0.0, 0.0])
 
-    def move(self, direction: Direction, power:float, steps: int):
-        wheels_command = [0.0, 0.0]
-        if direction == Direction.FORWARD:
-            wheels_command = [power, power]
-        if direction == Direction.BACKWARD:
-            wheels_command = [-power, -power]
-        
-        self.logger.info("sending the Move {} for {} steps".format(direction.name, steps))
-
+    def right(self, power:float, steps=1):
         for i in range(steps):
-            self.set_values(wheels_command)
+            self.set_values([power, -power])
             time.sleep(.5)
-        
         self.set_values([0.0, 0.0])
+
+    def forward(self, power:float, steps=1):
+        for i in range(steps):
+            self.set_values([power, power])
+            time.sleep(.5)
+        self.set_values([0.0, 0.0])
+
+    def backward(self, power:float, steps=1):
+        for i in range(steps):
+            self.set_values([-power, -power])
+            time.sleep(.5)
+        self.set_values([0.0, 0.0])                
 
     def open_gripper(self):
         self.set_values([0, 0, 0, 0, 0, 1])
@@ -99,9 +91,9 @@ class RobotController():
 
     def place(self):
         self.send_robot_to_goal([65, 67, 48, 100])
-        self.move(Direction.FORWARD, 25, 2)
+        self.forward(25, 2)
         self.open_gripper()
-        self.move(Direction.BACKWARD, 25, 2)
+        self.backward(25, 2)
         self.send_robot_to_goal([100, 67, 48, 1])
 
     def send_robot_to_goal(self, goal=[40, 50, 50, 0]):
