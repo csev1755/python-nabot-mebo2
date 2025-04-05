@@ -149,7 +149,7 @@ class GraphicalInterface():
             def scale1_stop(event):
                 self.scale1.set(0)
 
-            self.scale1 = Scale(from_=100, to=-100, label='head', command=scale1_command)
+            self.scale1 = Scale(from_=100, to=-100, label='Arm', command=scale1_command)
             self.scale1.bind('<ButtonRelease-1>', scale1_stop)
             self.scale1.pack(side='left')
 
@@ -159,11 +159,11 @@ class GraphicalInterface():
             def scale2_stop(event):
                 self.scale2.set(0)
 
-            self.scale2 = Scale(from_=100, to=-100, label='elbow', command=scale2_command)
+            self.scale2 = Scale(from_=100, to=-100, label='Elbow', command=scale2_command)
             self.scale2.bind('<ButtonRelease-1>', scale2_stop)
             self.scale2.pack(side='left')
 
-            self.scale3 = Scale(from_=0, to=100, orient=HORIZONTAL, label='Gripper')
+            self.scale3 = Scale(from_=0, to=100, orient=HORIZONTAL, label='Claw')
             self.scale3.pack(side='top')
 
             def scale4_command(val):
@@ -172,7 +172,7 @@ class GraphicalInterface():
             def scale4_stop(event):
                 self.scale4.set(0)
 
-            self.scale4 = Scale(from_=-100, to=100, orient=HORIZONTAL, command=scale4_command, label='wrist')
+            self.scale4 = Scale(from_=-100, to=100, orient=HORIZONTAL, command=scale4_command, label='Wrist')
             self.scale4.bind('<ButtonRelease-1>', scale4_stop)
             self.scale4.pack(side='top')
 
