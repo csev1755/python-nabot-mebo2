@@ -31,17 +31,9 @@ pip3 install .
 pip3 install -r examples/requirements.txt
 ```
 
-## Usage
+## Examples
 
-To control the robot with a GUI, ensure ffplay/ffmpeg is installed then run:
-```
-python3 examples/graphical_interface.py
-```
-This will open two windows: one displaying the robot's camera feed and another for controlling the robot.
-
-You can control the robot programmatically using the `RobotController` class found in `controls.py`.
-
-### Example: Move the Robot
+### Move the Robot
 ```python
 from mebo2_nabot import RobotController
 
@@ -49,7 +41,7 @@ robot = RobotController()
 robot.forward(power=30, steps=2)
 ```
 
-### Example: Retrieve Joint States
+### Retrieve Joint States
 ```python
 from mebo2_nabot import RobotController
 
@@ -57,3 +49,11 @@ robot = RobotController()
 robot.update_joint_states()
 print(robot.get_joint_states())
 ```
+
+### GUI Control
+
+To control the robot with a GUI, ensure ffplay/ffmpeg is installed then run:
+```
+python3 examples/graphical_interface.py
+```
+This will open two windows: one displaying the robot's camera feed and another for controlling the robot.
