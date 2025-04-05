@@ -4,10 +4,6 @@ import math
 import random
 
 from PIL import Image, ImageOps, ImageEnhance
-try:
-    import accimage
-except ImportError:
-    accimage = None
 
 import numpy as np
 import numbers
@@ -22,10 +18,7 @@ def _is_numpy_image(img):
     return isinstance(img, np.ndarray) and (img.ndim in {2, 3})
 
 def _is_pil_image(img):
-    if accimage is not None:
-        return isinstance(img, (Image.Image, accimage.Image))
-    else:
-        return isinstance(img, Image.Image)
+    return isinstance(img, Image.Image)
 
 def _is_tensor_image(img):
     return torch.is_tensor(img) and img.ndimension() == 3
