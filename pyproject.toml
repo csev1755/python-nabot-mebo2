@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mebo2_nabot"
+authors = [
+    {name = "Charlie Seversin", email = "charlie@cssev.net"}
+]
+description = "Python library to control Mebo 2.0 and Nabot AI robots"
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "requests",
+    "numpy"
+]

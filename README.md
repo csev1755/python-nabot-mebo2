@@ -1,6 +1,6 @@
-# Nabot AI / Mebo 2.0 Python API
+# Nabot AI / Mebo 2.0 Python Module
 
-This repository contains code for controlling the **Nabot AI** and **Mebo 2.0** robots. Since the original developers of these robots appear to be inactive, I have forked this project to try and maintain it for those who are still interested.
+This repository contains a Python module along with some examples of controlling **Nabot AI** and **Mebo 2.0** robots.
 
 ## Installation
 
@@ -21,16 +21,21 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+### 3. Install Module
 ```
-pip3 install -r requirements.txt
+pip3 install .
+```
+
+### 4. Install Example Dependencies
+```
+pip3 install -r examples/requirements.txt
 ```
 
 ## Usage
 
 To control the robot with a GUI, ensure ffplay/ffmpeg is installed then run:
 ```
-python3 graphical_interface.py
+python3 examples/graphical_interface.py
 ```
 This will open two windows: one displaying the robot's camera feed and another for controlling the robot.
 
@@ -38,7 +43,7 @@ You can control the robot programmatically using the `RobotController` class fou
 
 ### Example: Move the Robot
 ```python
-from controls import RobotController
+from mebo2_nabot import RobotController
 
 robot = RobotController()
 robot.forward(power=30, steps=2)
@@ -46,39 +51,9 @@ robot.forward(power=30, steps=2)
 
 ### Example: Retrieve Joint States
 ```python
-from controls import RobotController
+from mebo2_nabot import RobotController
 
 robot = RobotController()
 robot.update_joint_states()
 print(robot.get_joint_states())
-```
-
-## Object Detection
-
-Object detection allows the robot to analyze images and detect objects using a neural network.
-
-You can try out this functionality by running:
-
-```
-python3 object_detector.py
-```
-
-The `ObjectDetector` class can be used separately as well along with `RobotImaging`.
-
-### Example: Detect Objects in an Image
-```python
-from object_detector import ObjectDetector
-from imaging import RobotImaging
-
-object_detector = ObjectDetector()
-robot = RobotImaging()
-robot_image = robot.get_image()
-
-bounding_boxes, labels, confidences = object_detector.predict(robot_image)
-
-for i in range(len(bounding_boxes)):
-    print(f"Object {i + 1}:")
-    print(f"  Label: {labels[i]}")
-    print(f"  Bounding Box: {bounding_boxes[i]}")
-    print(f"  Confidence: {confidences[i]:.2f}")
 ```

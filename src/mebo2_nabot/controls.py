@@ -2,7 +2,7 @@ import time
 import numpy as np
 import logging
 
-from commands import RobotCommands
+from .commands import RobotCommands
 
 class RobotController():
     robot_state = [0, 0, 0, 0] # arm, wrist_ud, wrist_rot, gripper

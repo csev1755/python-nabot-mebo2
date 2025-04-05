@@ -2,13 +2,12 @@ import numpy as np
 import logging
 import sys
 import threading
-import sys
 import tkinter.ttk as ttk
 import tkinter as tk
 from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL
 import subprocess
 
-from controls import RobotController
+from mebo2_nabot import RobotController
 
 class GraphicalInterface():
     def __init__(self, **kwargs):
