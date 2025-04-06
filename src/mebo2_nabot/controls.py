@@ -45,23 +45,73 @@ class RobotController():
         
         self.set_values(self.stop_command)
 
-    def do_steps(self, command: list[float], steps=1):
+    def apply_limits(self, command: list[float], current_pos: list[float]) -> list[float]:
+        limited_command = []
+
+        limited_command.extend(command[:2])
+
+        for idx, (cmd, pos) in enumerate(zip(command[2:], current_pos)):
+            if cmd == 0.0:
+                limited_command.append(0.0)
+                continue
+            if (cmd > 0 and pos >= 90) or (cmd < 0 and pos <= 10):
+                self.logger.info('Joint limit hit')
+                limited_command = None
+                break
+            else:
+                limited_command.append(cmd)
+
+        return limited_command
+
+    def do_steps(self, command: list[float], steps, sleep):
         for i in range(steps):
-            self.set_values(command)
-            time.sleep(0.5)
-        self.set_values([0.0, 0.0])
+            self.update_joint_states()
+            current_pos = self.get_joint_states()
+            safe_command = self.apply_limits(command, current_pos)
+            if safe_command:
+                self.set_values(safe_command)
+                time.sleep(sleep)
+            else: break
 
-    def left(self, power: float, steps=1):
-        self.do_steps([-power, power], steps)
+    def left(self, power: float, steps=1, sleep=0.5):
+        self.do_steps([-power, power], steps, sleep)
+        self.stop()
 
-    def right(self, power: float, steps=1):
-        self.do_steps([power, -power], steps)
+    def right(self, power: float, steps=1, sleep=0.5):
+        self.do_steps([power, -power], steps, sleep)
+        self.stop()
 
-    def forward(self, power: float, steps=1):
-        self.do_steps([power, power], steps)
+    def forward(self, power: float, steps=1, sleep=0.5):
+        self.do_steps([power, power], steps, sleep)
+        self.stop()
 
-    def backward(self, power: float, steps=1):
-        self.do_steps([-power, -power], steps)            
+    def backward(self, power: float, steps=1, sleep=0.5):
+        self.do_steps([-power, -power], steps, sleep)            
+        self.stop()
+
+    def arm_up(self, power: float, steps=1, sleep=0.1):
+        self.do_steps([0, 0, power], steps, sleep) 
+        self.stop()
+
+    def arm_down(self, power: float, steps=1, sleep=0.1):
+        self.do_steps([0, 0, -power], steps, sleep)           
+        self.stop()
+
+    def wrist_up(self, power: float, steps=1, sleep=0.1):
+        self.do_steps([0, 0, 0, power], steps, sleep)
+        self.stop()
+
+    def wrist_down(self, power: float, steps=1, sleep=0.1):
+        self.do_steps([0, 0, 0, -power], steps, sleep)
+        self.stop()
+
+    def wrist_left(self, power: float, steps=1, sleep=0.1):
+        self.do_steps([0, 0, 0, 0, power], steps, sleep)
+        self.stop()
+
+    def wrist_right(self, power: float, steps=1, sleep=0.1):
+        self.do_steps([0, 0, 0, 0, -power], steps, sleep)  
+        self.stop()
 
     def open_gripper(self):
         self.set_values([0, 0, 0, 0, 0, 1])
