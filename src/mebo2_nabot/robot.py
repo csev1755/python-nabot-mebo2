@@ -32,6 +32,8 @@ class Robot():
         for cmd in self.init_commands:
             self._send_single_cmd(cmd, 0)
 
+        self.get_joint_states()
+
         self.logger.info('Initialized robot')
 
     def _new_cmd(self):
@@ -198,6 +200,7 @@ class Robot():
             else: break        
 
     def get_joint_states(self):
+        fallback_state = self.robot_state
         for cmd in self.robot_state_names:
             try:
                 data = self._send_single_cmd(cmd, 0)
@@ -212,8 +215,9 @@ class Robot():
                     self.robot_state[3] = int(aJsonString[5:])
             except:
                 self.logger.warning("Error parsing robot's states")
+                return fallback_state
 
-            return self.robot_state    
+        return self.robot_state    
     
     def set_values(self, jointValues):
         self._send_joined_cmd(jointValues)
