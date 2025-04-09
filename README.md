@@ -35,17 +35,17 @@ pip3 install -r examples/requirements.txt
 
 ### Move the Robot
 ```python
-from mebo2_nabot import RobotController
+import mebo2_nabot
 
-robot = RobotController()
+robot = mebo2_nabot.Robot()
 robot.forward(power=30, steps=2)
 ```
 
 ### Retrieve Joint States
 ```python
-from mebo2_nabot import RobotController
+import mebo2_nabot
 
-robot = RobotController()
+robot = mebo2_nabot.Robot()
 robot.update_joint_states()
 print(robot.get_joint_states())
 ```

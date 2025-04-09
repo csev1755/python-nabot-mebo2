@@ -6,8 +6,7 @@ import tkinter.ttk as ttk
 import tkinter as tk
 from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL
 import subprocess
-
-from mebo2_nabot import RobotController
+import mebo2_nabot
 
 class GraphicalInterface():
     def __init__(self, **kwargs):
@@ -22,7 +21,7 @@ class GraphicalInterface():
         self.logger = logging.getLogger('GUI')
         self.logger.info("Starting ffplay...")
         self.start_ffplay()
-        self.robot_ctrl = RobotController()
+        self.robot_ctrl = mebo2_nabot.Robot()
 
         self.joint_states = []
         self.num_empty_commands = 0

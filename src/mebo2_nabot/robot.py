@@ -1,34 +1,61 @@
 import time
-import requests
 import logging
+import requests
+import numpy as np
 
-class RobotCommands():
-    robot_command = [0, 0, 0, 0, 0, 0] # forward, left_right, arm, wrist_ud, wrist_rot, gripper
-    last_robot_command = [0, 0, 0, 0, 0, 0] # forward, left_right, arm, wrist_ud, wrist_rot, gripper
+class Robot():
+    robot_command = [0, 0, 0, 0, 0, 0]
+    last_robot_command = [0, 0, 0, 0, 0, 0]
+    stop_command = [0, 0, 0, 0, 0]
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
-    
+    robot_state = [0, 0, 0, 0]
+    robot_state_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
+    init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
     messageCount = 0
     
     __instance = None
 
     @staticmethod
-    def getInstance(*args, **kwargs):
-      """ Static access method. """
-      if RobotCommands.__instance == None:
-         RobotCommands(*args, **kwargs)
-      return RobotCommands.__instance
+    def getInstance():
+      if Robot.__instance == None:
+         Robot()
+      return Robot.__instance
     
-    def __init__(self, *args, **kwargs):
-        """ Virtually private constructor. """
-        if RobotCommands.__instance != None:
-            raise Exception("RobotCommands is a singleton!")
+    def __init__(self):
+        if Robot.__instance != None:
+            raise Exception("Robot is a singleton!")
         else:
-            RobotCommands.__instance = self
+            Robot.__instance = self
 
         self.logger = logging.getLogger('Robot Commands')
 
-    def send_single_command(self, cmd, value=None, retries=5, delay=0.5):
-        URL = "http://192.168.99.1/ajax/command.json?" + self.generate_single_command(1, cmd, value)
+        for cmd in self.init_commands:
+            self._send_single_cmd(cmd, 0)
+
+        self.logger.info('Initialized robot')
+
+    def _new_cmd(self):
+        result = "!" + self._to_base64(self.messageCount & 63)
+        self.messageCount += 1
+        return result
+
+    def _enc_spd(self, speed):
+        if speed:
+            return self._enc_base64(speed, 2)
+        else: return ""
+    
+    def _to_base64(self, val):
+        str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        return "" + str[val & 63]
+
+    def _enc_base64(self, val, chars_count):
+        result = ""
+        for i in range(chars_count):
+            result += self._to_base64(int(val) >> int(i * 6))
+        return result            
+
+    def _send_single_cmd(self, cmd, value=None, retries=5, delay=0.5):
+        URL = "http://192.168.99.1/ajax/command.json?" + self._gen_single_cmd(1, cmd, value)
 
         for attempt in range(retries):
             try:
@@ -40,14 +67,14 @@ class RobotCommands():
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
     
-    def send_joined_command(self, jointValues):
+    def _send_joined_cmd(self, jointValues):
         self.robot_command = jointValues
         URL = "http://192.168.99.1/ajax/command.json?"
 
         for i in range(len(self.robot_command)) :
             if (i > 0):
                 URL += "&";
-            URL += self.generate_single_command(i + 1, self.robot_command_names[i], self.robot_command[i])
+            URL += self._gen_single_cmd(i + 1, self.robot_command_names[i], self.robot_command[i])
             self.last_robot_command[i] = self.robot_command[i]
         time.sleep(0.01)
         try:
@@ -57,7 +84,7 @@ class RobotCommands():
         except Exception as e:
             self.logger.warning(e)
 
-    def generate_single_command(self, number, command, parameter):
+    def _gen_single_cmd(self, number, command, parameter):
         cmd_str = self._command_string(command, parameter)
         if(command == "EYE_LED_STATE"):
             return "command" + str(number) + "=eye_led_state()"
@@ -83,50 +110,50 @@ class RobotCommands():
         if ( cmd == "BAT"):
             return "BAT=?"
         elif ( cmd == "LIGHT_ON"):
-            return self.new_cmd() + "RAAAAAAAad"
+            return self._new_cmd() + "RAAAAAAAad"
         elif ( cmd == "LIGHT_OFF"):
-            return self.new_cmd() + "RAAAAAAAac"
+            return self._new_cmd() + "RAAAAAAAac"
 
         elif ( cmd == "WHEEL_LEFT_FORWARD"):
-            return self.new_cmd() + "F" + self.enc_spd(para)
+            return self._new_cmd() + "F" + self._enc_spd(para)
         elif ( cmd == "WHEEL_RIGHT_FORWARD"):
-            return self.new_cmd() + "E" + self.enc_spd(para)
+            return self._new_cmd() + "E" + self._enc_spd(para)
 
         elif ( cmd == "ARM_UP"):
-            return self.new_cmd() + "G" + self.enc_spd(para)
+            return self._new_cmd() + "G" + self._enc_spd(para)
         elif ( cmd == "ARM_QUERY"):
             return "ARM=?"
 
         elif ( cmd == "WRIST_UD_UP"):
-            return self.new_cmd() + "H" + self.enc_spd(para)
+            return self._new_cmd() + "H" + self._enc_spd(para)
         elif ( cmd == "WRIST_UD_QUERY"):
             return "WRIST_UD=?"
 
         elif ( cmd == "WRIST_ROTATE_LEFT"):
-            return self.new_cmd() + "I" + self.enc_spd(para)
+            return self._new_cmd() + "I" + self._enc_spd(para)
         elif ( cmd == "WRIST_ROTATE_QUERY"):
             return "WRIST_ROTATE=?"
 
         elif ( cmd == "CLAW_POSITION"):
-            return self.new_cmd() + "N" + self.enc_spd(para)
+            return self._new_cmd() + "N" + self._enc_spd(para)
         elif ( cmd == "CLAW_QUERY"):
             return "CLAW=?"
 
         elif ( cmd == "CAL_ARM"):
-            return self.new_cmd() + "DE"
+            return self._new_cmd() + "DE"
         elif ( cmd == "CAL_WRIST_UD"):
-            return self.new_cmd() + "DI"
+            return self._new_cmd() + "DI"
         elif ( cmd == "CAL_WRIST_ROTATE"):
-            return self.new_cmd() + "DQ"
+            return self._new_cmd() + "DQ"
         elif ( cmd == "CAL_CLAW"):
-            return self.new_cmd() + "Dg"
+            return self._new_cmd() + "Dg"
         elif ( cmd == "CAL_ALL"):
-            return self.new_cmd() + "D_"
+            return self._new_cmd() + "D_"
 
         elif ( cmd == "VERSION_QUERY"):
             return "VER=?"
         elif ( cmd == "REBOOT_CMD"):
-            return self.new_cmd() + "DE"
+            return self._new_cmd() + "DE"
 
         elif ( cmd == "SET_REG"):
             return ""
@@ -136,31 +163,178 @@ class RobotCommands():
             return "REG=FLUSH"
 
         elif ( cmd == "WHEEL_LEFT_SPEED"):
-            return self.new_cmd() + "F" + self.enc_spd(para)
+            return self._new_cmd() + "F" + self._enc_spd(para)
         elif ( cmd == "WHEEL_RIGHT_SPEED"):
-            return self.new_cmd() + "E" + self.enc_spd(para)
+            return self._new_cmd() + "E" + self._enc_spd(para)
 
         elif ( cmd == "QUERY_EVENT"):
             return "*"
         else:
             return ""
+        
+    def _apply_limits(self, command: list[float], current_pos: list[float]) -> list[float] | None:
+        limited_command = []
+        limited_command.extend(command[:2])
 
-    def new_cmd(self):
-        result = "!" + self._to_base64(self.messageCount & 63)
-        self.messageCount += 1
-        return result
+        for idx, (cmd, pos) in enumerate(zip(command[2:5], current_pos[:3]), start=2):
+            if cmd == 0.0:
+                limited_command.append(0.0)
+                continue
+            if (cmd > 0 and pos >= 90) or (cmd < 0 and pos <= 10): return None
+            limited_command.append(cmd)
 
-    def enc_spd(self, speed):
-        if speed:
-            return self._encode_base64(speed, 2)
-        else: return ""
+        if len(command) > 5:
+            target_claw = command[5]
+            limited_command.append(max(1, min(100, target_claw)))
+        return limited_command
+
+    def _do_steps(self, command: list[float], steps, sleep):
+        for i in range(steps):
+            self.update_joint_states()
+            current_pos = self.get_joint_states()
+            safe_command = self._apply_limits(command, current_pos)
+            if safe_command:
+                self.set_values(safe_command)
+                time.sleep(sleep)
+            else: break        
+
+    def update_joint_states(self):
+        for cmd in self.robot_state_names:
+            try:
+                data = self._send_single_cmd(cmd, 0)
+                aJsonString = data['response']
+                if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
+                    self.robot_state[0] = int(aJsonString[4:])
+                elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
+                    self.robot_state[1] = int(aJsonString[9:])
+                elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
+                    self.robot_state[2] = int(aJsonString[13:])
+                elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
+                    self.robot_state[3] = int(aJsonString[5:])
+            except:
+                self.logger.warning("Error parsing robot's states")
     
-    def _to_base64(self, val):
-        str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-        return "" + str[val & 63]
+    def get_joint_states(self):
+        return self.robot_state
+    
+    def set_values(self, jointValues):
+        self._send_joined_cmd(jointValues)
 
-    def _encode_base64(self, val, chars_count):
-        result = ""
-        for i in range(chars_count):
-            result += self._to_base64(int(val) >> int(i * 6))
-        return result
+    def stop(self, milliseconds:float = 0):
+        if milliseconds > 0:
+            time.sleep(milliseconds/1000)
+        
+        self.set_values(self.stop_command)
+
+    def left(self, power: float, steps=1, sleep=0.5):
+        self._do_steps([-power, power], steps, sleep)
+        self.stop()
+
+    def right(self, power: float, steps=1, sleep=0.5):
+        self._do_steps([power, -power], steps, sleep)
+        self.stop()
+
+    def forward(self, power: float, steps=1, sleep=0.5):
+        self._do_steps([power, power], steps, sleep)
+        self.stop()
+
+    def backward(self, power: float, steps=1, sleep=0.5):
+        self._do_steps([-power, -power], steps, sleep)            
+        self.stop()
+
+    def arm_up(self, power: float, steps=1, sleep=0.1):
+        self._do_steps([0, 0, power], steps, sleep) 
+        self.stop()
+
+    def arm_down(self, power: float, steps=1, sleep=0.1):
+        self._do_steps([0, 0, -power], steps, sleep)           
+        self.stop()
+
+    def wrist_up(self, power: float, steps=1, sleep=0.1):
+        self._do_steps([0, 0, 0, power], steps, sleep)
+        self.stop()
+
+    def wrist_down(self, power: float, steps=1, sleep=0.1):
+        self._do_steps([0, 0, 0, -power], steps, sleep)
+        self.stop()
+
+    def wrist_left(self, power: float, steps=1, sleep=0.1):
+        self._do_steps([0, 0, 0, 0, power], steps, sleep)
+        self.stop()
+
+    def wrist_right(self, power: float, steps=1, sleep=0.1):
+        self._do_steps([0, 0, 0, 0, -power], steps, sleep)  
+        self.stop()
+
+    def claw_open(self, steps=10):
+        self.update_joint_states()
+        current_pos = self.get_joint_states()
+        new_position = current_pos[3] - steps
+        safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
+        self.set_values(safe_command)
+
+    def claw_close(self, steps=10):
+        self.update_joint_states()
+        current_pos = self.get_joint_states()
+        new_position = current_pos[3] + steps
+        safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
+        self.set_values(safe_command)    
+
+    def toggle_claw_led(self):
+        response = self._send_single_cmd("CLAW_LED_STATE")
+        if response['response'] == "ON":
+            self._send_single_cmd("LIGHT_OFF")
+        else:
+            self._send_single_cmd("LIGHT_ON")
+
+    def pick(self):
+        self.set_joint_positions([100, 67, 48, 1])
+        self.claw_close(steps=100)
+        self.set_joint_positions([90, 67, 48, 100])
+
+    def place(self):
+        self.set_joint_positions([65, 67, 48, 100])
+        self.forward(25, 2)
+        self.claw_open(steps=100)
+        self.backward(25, 2)
+        self.set_joint_positions([100, 67, 48, 1])
+
+    def set_joint_positions(self, goal, max_loops=15, max_speed=20, stop_threshold=3):
+        if goal is None or len(goal) != 4:
+            raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
+
+        command = [0, 0, 0, 0, 0, 0]
+        current_states = np.asarray(self.get_joint_states()).astype(np.float32)
+
+        goal = np.array([g if g is not None else c for g, c in zip(goal, current_states)], dtype=np.float32)
+
+        loop_counter = 0
+        last_command_time = time.time()
+
+        while True:
+            if time.time() - last_command_time > 0.1:
+                self.update_joint_states()
+                time.sleep(0.1)
+                joint_states = np.asarray(self.get_joint_states()).astype(np.float32)
+                self.logger.debug(joint_states)
+
+                diff = (goal - joint_states) * 6
+                diff[2] /= 4 
+
+                for i, d in enumerate(diff[:-1]):
+                    diff[i] = min(max_speed, max(diff[i], -max_speed))
+
+                diff[0] = -diff[0]
+                self.logger.debug(diff)
+                self.logger.debug(np.max(np.abs(diff[:-1])))
+
+                if np.max(np.abs(diff[:-1])) < stop_threshold or loop_counter > max_loops:
+                    self.set_values([0, 0, 0, 0, 0, goal[-1]])
+                    break
+
+                command[2:5] = diff[:-1]
+                command[5] = goal[3]
+                self.set_values(command)
+
+                last_command_time = time.time()
+                loop_counter += 1
