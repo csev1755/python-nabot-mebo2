@@ -176,19 +176,28 @@ class Robot():
         
     def _apply_limits(self, command: list[float], current_pos: list[float]) -> list[float] | None:
         limited_command = []
-        limited_command.extend(command[:2])
+        limited_command.extend(command[:2])  # base movement (no limits)
 
         for idx, (cmd, pos) in enumerate(zip(command[2:5], current_pos[:3]), start=2):
+            
             if cmd == 0.0:
                 limited_command.append(0.0)
                 continue
-            if (cmd > 0 and pos >= 90) or (cmd < 0 and pos <= 10): return None
+            if idx == 2:
+                if (cmd < 0 and pos >= 90) or (cmd > 0 and pos <= 10):
+                    return None
+            else:
+                if (cmd > 0 and pos >= 90) or (cmd < 0 and pos <= 10):
+                    return None
+
             limited_command.append(cmd)
 
         if len(command) > 5:
             target_claw = command[5]
             limited_command.append(max(1, min(100, target_claw)))
+
         return limited_command
+
 
     def _do_steps(self, command: list[float], steps, sleep):
         for i in range(steps):
