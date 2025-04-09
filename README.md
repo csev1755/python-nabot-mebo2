@@ -46,7 +46,6 @@ robot.forward(power=30, steps=2)
 import mebo2_nabot
 
 robot = mebo2_nabot.Robot()
-robot.update_joint_states()
 print(robot.get_joint_states())
 ```
 

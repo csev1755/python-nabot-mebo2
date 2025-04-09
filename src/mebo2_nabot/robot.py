@@ -190,7 +190,6 @@ class Robot():
 
     def _do_steps(self, command: list[float], steps, sleep):
         for i in range(steps):
-            self.update_joint_states()
             current_pos = self.get_joint_states()
             safe_command = self._apply_limits(command, current_pos)
             if safe_command:
@@ -198,7 +197,7 @@ class Robot():
                 time.sleep(sleep)
             else: break        
 
-    def update_joint_states(self):
+    def get_joint_states(self):
         for cmd in self.robot_state_names:
             try:
                 data = self._send_single_cmd(cmd, 0)
@@ -213,9 +212,8 @@ class Robot():
                     self.robot_state[3] = int(aJsonString[5:])
             except:
                 self.logger.warning("Error parsing robot's states")
-    
-    def get_joint_states(self):
-        return self.robot_state
+
+            return self.robot_state    
     
     def set_values(self, jointValues):
         self._send_joined_cmd(jointValues)
@@ -267,14 +265,12 @@ class Robot():
         self.stop()
 
     def claw_open(self, steps=10):
-        self.update_joint_states()
         current_pos = self.get_joint_states()
         new_position = current_pos[3] - steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
         self.set_values(safe_command)
 
     def claw_close(self, steps=10):
-        self.update_joint_states()
         current_pos = self.get_joint_states()
         new_position = current_pos[3] + steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
@@ -313,7 +309,6 @@ class Robot():
 
         while True:
             if time.time() - last_command_time > 0.1:
-                self.update_joint_states()
                 time.sleep(0.1)
                 joint_states = np.asarray(self.get_joint_states()).astype(np.float32)
                 self.logger.debug(joint_states)
