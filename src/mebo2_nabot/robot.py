@@ -69,7 +69,7 @@ class Robot():
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
     
-    def _send_joined_cmd(self, jointValues):
+    def set_joint_values(self, jointValues):
         self.robot_command = jointValues
         URL = "http://192.168.99.1/ajax/command.json?"
 
@@ -204,7 +204,7 @@ class Robot():
             current_pos = self.get_joint_positions()
             safe_command = self._apply_limits(command, current_pos)
             if safe_command:
-                self.set_values(safe_command)
+                self.set_joint_values(safe_command)
                 time.sleep(sleep)
             else: break        
 
@@ -227,15 +227,12 @@ class Robot():
                 return fallback_state
 
         return self.robot_joint_position    
-    
-    def set_values(self, jointValues):
-        self._send_joined_cmd(jointValues)
 
     def stop(self, milliseconds:float = 0):
         if milliseconds > 0:
             time.sleep(milliseconds/1000)
         
-        self.set_values(self.stop_command)
+        self.set_joint_values(self.stop_command)
 
     def left(self, power: float, steps, sleep=0.5):
         self._do_steps([-power, power], steps, sleep)
@@ -281,13 +278,13 @@ class Robot():
         current_pos = self.get_joint_positions()
         new_position = current_pos[3] - steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
-        self.set_values(safe_command)
+        self.set_joint_values(safe_command)
 
     def claw_close(self, steps):
         current_pos = self.get_joint_positions()
         new_position = current_pos[3] + steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
-        self.set_values(safe_command)    
+        self.set_joint_values(safe_command)    
 
     def toggle_claw_led(self):
         response = self._send_single_cmd("CLAW_LED_STATE")
@@ -337,12 +334,12 @@ class Robot():
                 self.logger.debug(np.max(np.abs(diff[:-1])))
 
                 if np.max(np.abs(diff[:-1])) < stop_threshold or loop_counter > max_loops:
-                    self.set_values([0, 0, 0, 0, 0, goal[-1]])
+                    self.set_joint_values([0, 0, 0, 0, 0, goal[-1]])
                     break
 
                 command[2:5] = diff[:-1]
                 command[5] = goal[3]
-                self.set_values(command)
+                self.set_joint_values(command)
 
                 last_command_time = time.time()
                 loop_counter += 1
