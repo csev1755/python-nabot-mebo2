@@ -237,53 +237,53 @@ class Robot():
         
         self.set_values(self.stop_command)
 
-    def left(self, power: float, steps=1, sleep=0.5):
+    def left(self, power: float, steps, sleep=0.5):
         self._do_steps([-power, power], steps, sleep)
         self.stop()
 
-    def right(self, power: float, steps=1, sleep=0.5):
+    def right(self, power: float, steps, sleep=0.5):
         self._do_steps([power, -power], steps, sleep)
         self.stop()
 
-    def forward(self, power: float, steps=1, sleep=0.5):
+    def forward(self, power: float, steps, sleep=0.5):
         self._do_steps([power, power], steps, sleep)
         self.stop()
 
-    def backward(self, power: float, steps=1, sleep=0.5):
+    def backward(self, power: float, steps, sleep=0.5):
         self._do_steps([-power, -power], steps, sleep)            
         self.stop()
 
-    def arm_up(self, power: float, steps=1, sleep=0.1):
+    def arm_up(self, power: float, steps, sleep=0.1):
         self._do_steps([0, 0, power], steps, sleep) 
         self.stop()
 
-    def arm_down(self, power: float, steps=1, sleep=0.1):
+    def arm_down(self, power: float, steps, sleep=0.1):
         self._do_steps([0, 0, -power], steps, sleep)           
         self.stop()
 
-    def wrist_up(self, power: float, steps=1, sleep=0.1):
+    def wrist_up(self, power: float, steps, sleep=0.1):
         self._do_steps([0, 0, 0, power], steps, sleep)
         self.stop()
 
-    def wrist_down(self, power: float, steps=1, sleep=0.1):
+    def wrist_down(self, power: float, steps, sleep=0.1):
         self._do_steps([0, 0, 0, -power], steps, sleep)
         self.stop()
 
-    def wrist_left(self, power: float, steps=1, sleep=0.1):
+    def wrist_left(self, power: float, steps, sleep=0.1):
         self._do_steps([0, 0, 0, 0, power], steps, sleep)
         self.stop()
 
-    def wrist_right(self, power: float, steps=1, sleep=0.1):
+    def wrist_right(self, power: float, steps, sleep=0.1):
         self._do_steps([0, 0, 0, 0, -power], steps, sleep)  
         self.stop()
 
-    def claw_open(self, steps=10):
+    def claw_open(self, steps):
         current_pos = self.get_joint_states()
         new_position = current_pos[3] - steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
         self.set_values(safe_command)
 
-    def claw_close(self, steps=10):
+    def claw_close(self, steps):
         current_pos = self.get_joint_states()
         new_position = current_pos[3] + steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
