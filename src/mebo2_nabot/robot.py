@@ -194,7 +194,7 @@ class Robot():
 
         if len(command) > 5:
             target_claw = command[5]
-            limited_command.append(max(1, min(100, target_claw)))
+            limited_command.append(max(0, min(100, target_claw)))
 
         return limited_command
 
@@ -276,12 +276,15 @@ class Robot():
 
     def claw_open(self, steps):
         current_pos = self.get_joint_positions()
+        # arm steps unreliably if less than 3, cap to 3
+        if steps < 3: steps = 3
         new_position = current_pos[3] - steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
         self.set_joint_values(safe_command)
 
     def claw_close(self, steps):
         current_pos = self.get_joint_positions()
+        if steps < 3: steps = 3
         new_position = current_pos[3] + steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
         self.set_joint_values(safe_command)    
