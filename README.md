@@ -41,12 +41,12 @@ robot = mebo2_nabot.Robot()
 robot.forward(power=30, steps=2)
 ```
 
-### Retrieve Joint States
+### Retrieve Joint Positions
 ```python
 import mebo2_nabot
 
 robot = mebo2_nabot.Robot()
-print(robot.get_joint_states())
+print(robot.get_joint_positions())
 ```
 
 ### GUI Control

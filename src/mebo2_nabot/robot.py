@@ -8,8 +8,8 @@ class Robot():
     last_robot_command = [0, 0, 0, 0, 0, 0]
     stop_command = [0, 0, 0, 0, 0]
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
-    robot_state = [0, 0, 0, 0]
-    robot_state_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
+    robot_joint_position = [0, 0, 0, 0]
+    robot_joint_position_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
     init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
     messageCount = 0
     
@@ -32,7 +32,7 @@ class Robot():
         for cmd in self.init_commands:
             self._send_single_cmd(cmd, 0)
 
-        self.get_joint_states()
+        self.get_joint_positions()
 
         self.logger.info('Initialized robot')
 
@@ -201,32 +201,32 @@ class Robot():
 
     def _do_steps(self, command: list[float], steps, sleep):
         for i in range(steps):
-            current_pos = self.get_joint_states()
+            current_pos = self.get_joint_positions()
             safe_command = self._apply_limits(command, current_pos)
             if safe_command:
                 self.set_values(safe_command)
                 time.sleep(sleep)
             else: break        
 
-    def get_joint_states(self):
-        fallback_state = self.robot_state
-        for cmd in self.robot_state_names:
+    def get_joint_positions(self):
+        fallback_state = self.robot_joint_position
+        for cmd in self.robot_joint_position_names:
             try:
                 data = self._send_single_cmd(cmd, 0)
                 aJsonString = data['response']
                 if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
-                    self.robot_state[0] = int(aJsonString[4:])
+                    self.robot_joint_position[0] = int(aJsonString[4:])
                 elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
-                    self.robot_state[1] = int(aJsonString[9:])
+                    self.robot_joint_position[1] = int(aJsonString[9:])
                 elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
-                    self.robot_state[2] = int(aJsonString[13:])
+                    self.robot_joint_position[2] = int(aJsonString[13:])
                 elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
-                    self.robot_state[3] = int(aJsonString[5:])
+                    self.robot_joint_position[3] = int(aJsonString[5:])
             except:
                 self.logger.warning("Error parsing robot's states")
                 return fallback_state
 
-        return self.robot_state    
+        return self.robot_joint_position    
     
     def set_values(self, jointValues):
         self._send_joined_cmd(jointValues)
@@ -278,13 +278,13 @@ class Robot():
         self.stop()
 
     def claw_open(self, steps):
-        current_pos = self.get_joint_states()
+        current_pos = self.get_joint_positions()
         new_position = current_pos[3] - steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
         self.set_values(safe_command)
 
     def claw_close(self, steps):
-        current_pos = self.get_joint_states()
+        current_pos = self.get_joint_positions()
         new_position = current_pos[3] + steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
         self.set_values(safe_command)    
@@ -313,7 +313,7 @@ class Robot():
             raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
 
         command = [0, 0, 0, 0, 0, 0]
-        current_states = np.asarray(self.get_joint_states()).astype(np.float32)
+        current_states = np.asarray(self.get_joint_positions()).astype(np.float32)
 
         goal = np.array([g if g is not None else c for g, c in zip(goal, current_states)], dtype=np.float32)
 
@@ -323,7 +323,7 @@ class Robot():
         while True:
             if time.time() - last_command_time > 0.1:
                 time.sleep(0.1)
-                joint_states = np.asarray(self.get_joint_states()).astype(np.float32)
+                joint_states = np.asarray(self.get_joint_positions()).astype(np.float32)
                 self.logger.debug(joint_states)
 
                 diff = (goal - joint_states) * 6
