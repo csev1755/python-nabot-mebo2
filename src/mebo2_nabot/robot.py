@@ -295,6 +295,12 @@ class Robot():
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
         self.set_joint_values(safe_command)    
 
+    def claw_led_on(self):
+        self._send_single_cmd("LIGHT_ON")
+
+    def claw_led_off(self):
+        self._send_single_cmd("LIGHT_OFF")        
+    
     def toggle_claw_led(self):
         response = self._send_single_cmd("CLAW_LED_STATE")
         if response['response'] == "ON":
