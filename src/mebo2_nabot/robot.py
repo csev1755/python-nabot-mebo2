@@ -15,6 +15,8 @@ class Robot():
     robot_joint_position_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
     init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
     messageCount = 0
+    # default speed
+    speed = 50
     
     __instance = None
 
@@ -240,44 +242,44 @@ class Robot():
         
         self.set_joint_values(self.stop_command)
 
-    def left(self, power: float, steps, sleep=0.5):
-        self._do_steps([-power, power], steps, sleep)
+    def left(self, steps, sleep=0.5):
+        self._do_steps([-self.speed, self.speed], steps, sleep)
         self.stop()
 
-    def right(self, power: float, steps, sleep=0.5):
-        self._do_steps([power, -power], steps, sleep)
+    def right(self, steps, sleep=0.5):
+        self._do_steps([self.speed, -self.speed], steps, sleep)
         self.stop()
 
-    def forward(self, power: float, steps, sleep=0.5):
-        self._do_steps([power, power], steps, sleep)
+    def forward(self, steps, sleep=0.5):
+        self._do_steps([self.speed, self.speed], steps, sleep)
         self.stop()
 
-    def backward(self, power: float, steps, sleep=0.5):
-        self._do_steps([-power, -power], steps, sleep)            
+    def backward(self, steps, sleep=0.5):
+        self._do_steps([-self.speed, -self.speed], steps, sleep)            
         self.stop()
 
-    def arm_up(self, power: float, steps, sleep=0.1):
-        self._do_steps([0, 0, power], steps, sleep) 
+    def arm_up(self, steps, sleep=0.1):
+        self._do_steps([0, 0, self.speed], steps, sleep) 
         self.stop()
 
-    def arm_down(self, power: float, steps, sleep=0.1):
-        self._do_steps([0, 0, -power], steps, sleep)           
+    def arm_down(self, steps, sleep=0.1):
+        self._do_steps([0, 0, -self.speed], steps, sleep)           
         self.stop()
 
-    def wrist_up(self, power: float, steps, sleep=0.1):
-        self._do_steps([0, 0, 0, power], steps, sleep)
+    def wrist_up(self, steps, sleep=0.1):
+        self._do_steps([0, 0, 0, self.speed], steps, sleep)
         self.stop()
 
-    def wrist_down(self, power: float, steps, sleep=0.1):
-        self._do_steps([0, 0, 0, -power], steps, sleep)
+    def wrist_down(self, steps, sleep=0.1):
+        self._do_steps([0, 0, 0, -self.speed], steps, sleep)
         self.stop()
 
-    def wrist_left(self, power: float, steps, sleep=0.1):
-        self._do_steps([0, 0, 0, 0, power], steps, sleep)
+    def wrist_left(self, steps, sleep=0.1):
+        self._do_steps([0, 0, 0, 0, self.speed], steps, sleep)
         self.stop()
 
-    def wrist_right(self, power: float, steps, sleep=0.1):
-        self._do_steps([0, 0, 0, 0, -power], steps, sleep)  
+    def wrist_right(self, steps, sleep=0.1):
+        self._do_steps([0, 0, 0, 0, -self.speed], steps, sleep)  
         self.stop()
 
     def claw_open(self, steps):
@@ -319,6 +321,9 @@ class Robot():
         self.claw_open(steps=100)
         self.backward(25, 2)
         self.set_joint_positions([100, 67, 48, 1])
+
+    def set_speed(self, speed):
+        self.speed = speed
 
     def set_joint_positions(self, goal, max_loops=15, max_speed=20, stop_threshold=3):
         if goal is None or len(goal) != 4:
