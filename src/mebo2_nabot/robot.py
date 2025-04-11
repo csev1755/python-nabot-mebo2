@@ -363,7 +363,6 @@ class Robot():
         channels = kwargs.get('channels')
         input_format = kwargs.get('input_format')
         channel_layout = kwargs.get('channel_layout')
-        chunk_size = kwargs.get('chunk_size', 128)
 
         # general ffmpeg flags
         ffmpeg_cmd = [
@@ -416,6 +415,7 @@ class Robot():
             ffmpeg.wait()
     
         if numpy_array is not None:
+            chunk_size = 128
             for i in range(0, len(numpy_array), chunk_size):
                 chunk = numpy_array[i:i + chunk_size]
                 write(chunk.tobytes())
@@ -426,5 +426,5 @@ class Robot():
             return write, close    
 
         else: 
-            print("Please specify either a file or pipe.") 
+            print("Please specify either a file or numpy array/stream.") 
             return None, None
