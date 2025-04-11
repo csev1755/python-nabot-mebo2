@@ -1,6 +1,8 @@
 import time
 import logging
 import requests
+import os
+import subprocess
 import numpy as np
 
 class Robot():
@@ -352,3 +354,77 @@ class Robot():
 
                 last_command_time = time.time()
                 loop_counter += 1
+
+    def send_audio(self, **kwargs):
+        file = kwargs.get('file')
+        numpy_stream = kwargs.get('numpy_stream')
+        numpy_array = kwargs.get('numpy_array')
+        rate = kwargs.get('rate')
+        channels = kwargs.get('channels')
+        input_format = kwargs.get('input_format')
+        channel_layout = kwargs.get('channel_layout')
+        chunk_size = kwargs.get('chunk_size', 128)
+
+        # general ffmpeg flags
+        ffmpeg_cmd = [
+            'ffmpeg',
+            '-loglevel', 'quiet',
+            '-fflags', 'nobuffer',
+            '-flags', 'low_delay',
+            '-probesize', '32',
+            '-analyzeduration', '0'
+        ]
+
+        # output format and destination
+        stream_params = [
+            '-f', 'alaw', 
+            '-ar', '8000', 
+            '-ac', '1', 
+            "udp://192.168.99.1:8828?connect=1"
+        ]
+
+        if file:
+            if isinstance(file, str) and os.path.isfile(file):
+                if input_format:
+                    ffmpeg_cmd += ['-f', input_format]
+
+                ffmpeg_cmd += ['-i', file] + stream_params
+                subprocess.run(ffmpeg_cmd)
+                return
+            else:
+                print(f"Can't read file: {file}")
+                return
+
+        if not all([rate, channels, input_format, channel_layout]):
+            raise ValueError("Missing required parameters for numpy mode.")
+
+        ffmpeg_cmd += [
+            '-f', input_format,
+            '-ar', str(rate),
+            '-ac', str(channels),
+            '-channel_layout', channel_layout,
+            '-i', 'pipe:0'
+        ] + stream_params
+
+        ffmpeg = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+
+        def write(data):
+            ffmpeg.stdin.write(data)
+
+        def close():
+            ffmpeg.stdin.close()
+            ffmpeg.wait()
+    
+        if numpy_array is not None:
+            for i in range(0, len(numpy_array), chunk_size):
+                chunk = numpy_array[i:i + chunk_size]
+                write(chunk.tobytes())
+                time.sleep(chunk_size / rate)
+            close()
+
+        elif numpy_stream is not None:
+            return write, close    
+
+        else: 
+            print("Please specify either a file or pipe.") 
+            return None, None

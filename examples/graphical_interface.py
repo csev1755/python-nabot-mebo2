@@ -2,11 +2,47 @@ import numpy as np
 import logging
 import sys
 import threading
+import subprocess
+import pyaudio
 import tkinter.ttk as ttk
 import tkinter as tk
 from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL
-import subprocess
 import mebo2_nabot
+
+class MicrophoneCapture:
+    def __init__(self):
+        self.running = False
+        self.capture_thread = None
+        self.logger = logging.getLogger('Microphone')
+
+    def start_capture(self, callback, rate=8000, channels=1, chunk=128, format=pyaudio.paInt16, device_index=None):
+        p = pyaudio.PyAudio()
+        stream = p.open(format=format,
+                        channels=channels,
+                        rate=rate,
+                        input=True,
+                        input_device_index=device_index,
+                        frames_per_buffer=chunk)
+        
+        self.logger.info("Capture started.")
+
+        try:
+            while self.running:
+                raw_data = stream.read(chunk, exception_on_overflow=False)
+                np_data = np.frombuffer(raw_data, dtype=np.int16)
+                callback(np_data)
+        except Exception as e:
+            self.logger.error(f"Error during capture: {e}")
+        finally:
+            stream.stop_stream()
+            stream.close()
+            p.terminate()
+            self.logger.info("Capture stopped.")
+
+    def stop_capture(self):
+        self.running = False
+        if self.capture_thread:
+            self.capture_thread.join()
 
 class GraphicalInterface():
     def __init__(self, **kwargs):
@@ -22,6 +58,9 @@ class GraphicalInterface():
         self.logger.info("Starting ffplay...")
         self.start_ffplay()
         self.robot_ctrl = mebo2_nabot.Robot()
+        self.microphone_capture = MicrophoneCapture()
+        self.is_streaming = False
+        self.write_to_ffmpeg, self.close_ffmpeg = self.robot_ctrl.send_audio(numpy_stream=True, rate=8000, channels=1, input_format='s16le', channel_layout='mono')
 
         self.joint_states = []
         self.num_empty_commands = 0
@@ -180,6 +219,26 @@ class GraphicalInterface():
 
             self.button1 = Button(text="Claw LED", command=button1_command)
             self.button1.pack(side='top')
+
+            def button2_press(event):
+                global is_streaming
+                self.logger.info("Key pressed, starting audio capture.")
+                self.microphone_capture.running = True
+                self.microphone_capture.capture_thread = threading.Thread(target=self.microphone_capture.start_capture, args=(self.write_to_ffmpeg,))
+                self.microphone_capture.capture_thread.daemon = True
+                self.microphone_capture.capture_thread.start()
+                is_streaming = True   
+
+            def button2_release(event):
+                global is_streaming
+                self.logger.info("Key released, stopping audio capture.")
+                self.microphone_capture.stop_capture()
+                is_streaming = False                   
+
+            self.button2 = Button(text="Talk")
+            self.button2.pack(side='top')
+            self.button2.bind('<ButtonPress-1>', button2_press)
+            self.button2.bind('<ButtonRelease-1>', button2_release)
 
         create_canvas()
         self.robot_controller()
