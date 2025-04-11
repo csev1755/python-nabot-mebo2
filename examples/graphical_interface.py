@@ -132,7 +132,7 @@ class GraphicalInterface():
             y = (v + w) // 2
 
             command_to_send = [x, y, self.scale1.get(), self.scale2.get(), self.scale4.get(), self.scale3.get()]
-            self.robot_ctrl.set_joint_values(command_to_send)
+            self.robot_ctrl.send_joint_values(command_to_send)
 
         self.parent.after(10, self.robot_controller)
 

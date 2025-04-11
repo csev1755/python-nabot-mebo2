@@ -75,7 +75,7 @@ class Robot():
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
     
-    def set_joint_values(self, jointValues):
+    def send_joint_values(self, jointValues):
         self.robot_command = jointValues
         URL = "http://192.168.99.1/ajax/command.json?"
 
@@ -212,7 +212,7 @@ class Robot():
             current_pos = self.get_joint_positions()
             safe_command = self._apply_limits(command, current_pos)
             if safe_command:
-                self.set_joint_values(safe_command)
+                self.send_joint_values(safe_command)
                 time.sleep(sleep)
             else: break        
 
@@ -240,7 +240,7 @@ class Robot():
         if milliseconds > 0:
             time.sleep(milliseconds/1000)
         
-        self.set_joint_values(self.stop_command)
+        self.send_joint_values(self.stop_command)
 
     def left(self, steps, sleep=0.5):
         self._do_steps([-self.speed, self.speed], steps, sleep)
@@ -288,14 +288,14 @@ class Robot():
         if steps < 3: steps = 3
         new_position = current_pos[3] - steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
-        self.set_joint_values(safe_command)
+        self.send_joint_values(safe_command)
 
     def claw_close(self, steps):
         current_pos = self.get_joint_positions()
         if steps < 3: steps = 3
         new_position = current_pos[3] + steps
         safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
-        self.set_joint_values(safe_command)    
+        self.send_joint_values(safe_command)    
 
     def claw_led_on(self):
         self._send_single_cmd("LIGHT_ON")
@@ -356,12 +356,12 @@ class Robot():
                 self.logger.debug(np.max(np.abs(diff[:-1])))
 
                 if np.max(np.abs(diff[:-1])) < stop_threshold or loop_counter > max_loops:
-                    self.set_joint_values([0, 0, 0, 0, 0, goal[-1]])
+                    self.send_joint_values([0, 0, 0, 0, 0, goal[-1]])
                     break
 
                 command[2:5] = diff[:-1]
                 command[5] = goal[3]
-                self.set_joint_values(command)
+                self.send_joint_values(command)
 
                 last_command_time = time.time()
                 loop_counter += 1
