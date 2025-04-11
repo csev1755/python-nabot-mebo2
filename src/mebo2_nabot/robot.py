@@ -6,6 +6,7 @@ import numpy as np
 class Robot():
     robot_command = [0, 0, 0, 0, 0, 0]
     last_robot_command = [0, 0, 0, 0, 0, 0]
+    # claw stops on its own, dont need in stop command
     stop_command = [0, 0, 0, 0, 0]
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
     robot_joint_position = [0, 0, 0, 0]
@@ -44,6 +45,7 @@ class Robot():
     def _enc_spd(self, speed):
         if speed:
             return self._enc_base64(speed, 2)
+        # allow _send_single_command to have a value parameter of None
         else: return ""
     
     def _to_base64(self, val):
@@ -141,6 +143,17 @@ class Robot():
         elif ( cmd == "CLAW_QUERY"):
             return "CLAW=?"
 
+        elif ( cmd == "VERSION_QUERY"):
+            return "VER=?"
+        elif ( cmd == "REBOOT_CMD"):
+            return self._new_cmd() + "DE"
+
+        elif ( cmd == "WHEEL_LEFT_SPEED"):
+            return self._new_cmd() + "F" + self._enc_spd(para)
+        elif ( cmd == "WHEEL_RIGHT_SPEED"):
+            return self._new_cmd() + "E" + self._enc_spd(para)
+
+        # not entirely sure what these remaining commands do and how we can implement them
         elif ( cmd == "CAL_ARM"):
             return self._new_cmd() + "DE"
         elif ( cmd == "CAL_WRIST_UD"):
@@ -151,23 +164,13 @@ class Robot():
             return self._new_cmd() + "Dg"
         elif ( cmd == "CAL_ALL"):
             return self._new_cmd() + "D_"
-
-        elif ( cmd == "VERSION_QUERY"):
-            return "VER=?"
-        elif ( cmd == "REBOOT_CMD"):
-            return self._new_cmd() + "DE"
-
+        
         elif ( cmd == "SET_REG"):
             return ""
         elif ( cmd == "QUERY_REG"):
             return "REG" + (para / 100 % 10) + (para / 10 % 10) + (para % 10) + "=?"
         elif ( cmd == "SAVE_REG"):
             return "REG=FLUSH"
-
-        elif ( cmd == "WHEEL_LEFT_SPEED"):
-            return self._new_cmd() + "F" + self._enc_spd(para)
-        elif ( cmd == "WHEEL_RIGHT_SPEED"):
-            return self._new_cmd() + "E" + self._enc_spd(para)
 
         elif ( cmd == "QUERY_EVENT"):
             return "*"
@@ -176,7 +179,7 @@ class Robot():
         
     def _apply_limits(self, command: list[float], current_pos: list[float]) -> list[float] | None:
         limited_command = []
-        limited_command.extend(command[:2])  # base movement (no limits)
+        limited_command.extend(command[:2])
 
         for idx, (cmd, pos) in enumerate(zip(command[2:5], current_pos[:3]), start=2):
             
@@ -184,6 +187,7 @@ class Robot():
                 limited_command.append(0.0)
                 continue
             if idx == 2:
+                # arm position is reversed
                 if (cmd < 0 and pos >= 90) or (cmd > 0 and pos <= 10):
                     return None
             else:
@@ -313,8 +317,9 @@ class Robot():
             raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
 
         command = [0, 0, 0, 0, 0, 0]
+        
+        # allow None values, replace with current position
         current_states = np.asarray(self.get_joint_positions()).astype(np.float32)
-
         goal = np.array([g if g is not None else c for g, c in zip(goal, current_states)], dtype=np.float32)
 
         loop_counter = 0
@@ -327,6 +332,7 @@ class Robot():
                 self.logger.debug(joint_states)
 
                 diff = (goal - joint_states) * 6
+                # make arm go a bit slower
                 diff[2] /= 4 
 
                 for i, d in enumerate(diff[:-1]):
