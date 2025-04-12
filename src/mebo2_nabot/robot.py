@@ -464,7 +464,7 @@ class Robot():
         def stop(self):
             self.process.terminate()
 
-        def read_chunks(self):
+        def read(self):
             while True:
                 raw = self.process.stdout.read(self.chunk_size * 2)
                 if not raw:

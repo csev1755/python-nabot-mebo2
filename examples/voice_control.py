@@ -44,7 +44,7 @@ def start_speech_recognition(rtsp_url):
 
     recognizer = VoskSpeechRecognizer(rate=16000)
 
-    recognition_thread = threading.Thread(target=recognizer.process_stream, args=(audio_input.read_chunks(),))
+    recognition_thread = threading.Thread(target=recognizer.process_stream, args=(audio_input.read(),))
     recognition_thread.daemon = True
     recognition_thread.start()
 
