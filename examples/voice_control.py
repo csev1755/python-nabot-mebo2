@@ -39,7 +39,7 @@ class VoskSpeechRecognizer:
             self.robot.claw_open(100)   
 
 def start_speech_recognition(rtsp_url):
-    audio_input = mebo2_nabot.Microphone(rtsp_url)
+    audio_input = mebo2_nabot.Robot.Microphone(rtsp_url)
     audio_input.start()
 
     recognizer = VoskSpeechRecognizer(rate=16000)

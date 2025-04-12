@@ -55,6 +55,6 @@ print(robot.get_joint_positions())
 
 To control the robot with a GUI, ensure ffplay/ffmpeg is installed then run:
 ```
-python3 examples/graphical_interface.py
+python3 examples/gui_control.py
 ```
 This will open two windows: one displaying the robot's camera feed and another for controlling the robot.

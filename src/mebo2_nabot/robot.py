@@ -366,107 +366,108 @@ class Robot():
                 last_command_time = time.time()
                 loop_counter += 1
 
-    def send_audio(self, **kwargs):
-        file = kwargs.get('file')
-        numpy_stream = kwargs.get('numpy_stream')
-        numpy_array = kwargs.get('numpy_array')
-        rate = kwargs.get('rate')
-        channels = kwargs.get('channels')
-        input_format = kwargs.get('input_format')
-        channel_layout = kwargs.get('channel_layout')
+    class Speaker():
+        def send_audio(self, **kwargs):
+            file = kwargs.get('file')
+            numpy_stream = kwargs.get('numpy_stream')
+            numpy_array = kwargs.get('numpy_array')
+            rate = kwargs.get('rate')
+            channels = kwargs.get('channels')
+            input_format = kwargs.get('input_format')
+            channel_layout = kwargs.get('channel_layout')
 
-        # general ffmpeg flags
-        ffmpeg_cmd = [
-            'ffmpeg',
-            '-loglevel', 'quiet',
-            '-fflags', 'nobuffer',
-            '-flags', 'low_delay',
-            '-probesize', '32',
-            '-analyzeduration', '0'
-        ]
+            # general ffmpeg flags
+            ffmpeg_cmd = [
+                'ffmpeg',
+                '-loglevel', 'quiet',
+                '-fflags', 'nobuffer',
+                '-flags', 'low_delay',
+                '-probesize', '32',
+                '-analyzeduration', '0'
+            ]
 
-        # output format and destination
-        stream_params = [
-            '-f', 'alaw', 
-            '-ar', '8000', 
-            '-ac', '1', 
-            "udp://192.168.99.1:8828?connect=1"
-        ]
+            # output format and destination
+            stream_params = [
+                '-f', 'alaw', 
+                '-ar', '8000', 
+                '-ac', '1', 
+                "udp://192.168.99.1:8828?connect=1"
+            ]
 
-        if file:
-            if isinstance(file, str) and os.path.isfile(file):
-                if input_format:
-                    ffmpeg_cmd += ['-f', input_format]
+            if file:
+                if isinstance(file, str) and os.path.isfile(file):
+                    if input_format:
+                        ffmpeg_cmd += ['-f', input_format]
 
-                ffmpeg_cmd += ['-i', file] + stream_params
-                subprocess.run(ffmpeg_cmd)
-                return
-            else:
-                print(f"Can't read file: {file}")
-                return
+                    ffmpeg_cmd += ['-i', file] + stream_params
+                    subprocess.run(ffmpeg_cmd)
+                    return
+                else:
+                    print(f"Can't read file: {file}")
+                    return
 
-        if not all([rate, channels, input_format, channel_layout]):
-            raise ValueError("Missing required parameters for numpy mode.")
+            if not all([rate, channels, input_format, channel_layout]):
+                raise ValueError("Missing required parameters for numpy mode.")
 
-        ffmpeg_cmd += [
-            '-f', input_format,
-            '-ar', str(rate),
-            '-ac', str(channels),
-            '-channel_layout', channel_layout,
-            '-i', 'pipe:0'
-        ] + stream_params
+            ffmpeg_cmd += [
+                '-f', input_format,
+                '-ar', str(rate),
+                '-ac', str(channels),
+                '-channel_layout', channel_layout,
+                '-i', 'pipe:0'
+            ] + stream_params
 
-        ffmpeg = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+            ffmpeg = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
-        def write(data):
-            ffmpeg.stdin.write(data)
+            def write(data):
+                ffmpeg.stdin.write(data)
 
-        def close():
-            ffmpeg.stdin.close()
-            ffmpeg.wait()
-    
-        if numpy_array is not None:
-            chunk_size = 128
-            for i in range(0, len(numpy_array), chunk_size):
-                chunk = numpy_array[i:i + chunk_size]
-                write(chunk.tobytes())
-                time.sleep(chunk_size / rate)
-            close()
+            def close():
+                ffmpeg.stdin.close()
+                ffmpeg.wait()
+        
+            if numpy_array is not None:
+                chunk_size = 128
+                for i in range(0, len(numpy_array), chunk_size):
+                    chunk = numpy_array[i:i + chunk_size]
+                    write(chunk.tobytes())
+                    time.sleep(chunk_size / rate)
+                close()
 
-        elif numpy_stream is not None:
-            return write, close    
+            elif numpy_stream is not None:
+                return write, close    
 
-        else: 
-            print("Please specify either a file or numpy array/stream.") 
-            return None, None
+            else: 
+                print("Please specify either a file or numpy array/stream.") 
+                return None, None
 
-class Microphone():
-    def __init__(self, rtsp_url, rate=16000, channels=1, chunk_size=4000):
-        self.rtsp_url = rtsp_url
-        self.rate = rate
-        self.channels = channels
-        self.chunk_size = chunk_size
+    class Microphone():
+        def __init__(self, rtsp_url, rate=16000, channels=1, chunk_size=4000):
+            self.rtsp_url = rtsp_url
+            self.rate = rate
+            self.channels = channels
+            self.chunk_size = chunk_size
 
-    def start(self):
-        ffmpeg_cmd = [
-            'ffmpeg',
-            '-loglevel', 'quiet',
-            '-i', self.rtsp_url,
-            '-f', 's16le',
-            '-acodec', 'pcm_s16le',
-            '-ac', str(self.channels),
-            '-ar', str(self.rate),
-            '-'
-        ]
-        self.process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, bufsize=10**8)
-    
-    def stop(self):
-        self.process.terminate()
+        def start(self):
+            ffmpeg_cmd = [
+                'ffmpeg',
+                '-loglevel', 'quiet',
+                '-i', self.rtsp_url,
+                '-f', 's16le',
+                '-acodec', 'pcm_s16le',
+                '-ac', str(self.channels),
+                '-ar', str(self.rate),
+                '-'
+            ]
+            self.process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, bufsize=10**8)
+        
+        def stop(self):
+            self.process.terminate()
 
-    def read_chunks(self):
-        while True:
-            raw = self.process.stdout.read(self.chunk_size * 2)
-            if not raw:
-                break
-            audio_np = np.frombuffer(raw, dtype=np.int16)
-            yield audio_np        
+        def read_chunks(self):
+            while True:
+                raw = self.process.stdout.read(self.chunk_size * 2)
+                if not raw:
+                    break
+                audio_np = np.frombuffer(raw, dtype=np.int16)
+                yield audio_np        
