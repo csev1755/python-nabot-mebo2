@@ -55,9 +55,9 @@ class GraphicalInterface():
         
         self.stop_robot = False
         self.logger = logging.getLogger('GUI')
+        self.robot_ctrl = mebo2_nabot.Robot()
         self.logger.info("Starting ffplay...")
         self.start_ffplay()
-        self.robot_ctrl = mebo2_nabot.Robot()
         self.robot_speaker = mebo2_nabot.Robot.Speaker(
             numpy_stream=True,
             rate=8000,
