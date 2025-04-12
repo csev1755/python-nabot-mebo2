@@ -330,11 +330,17 @@ class Robot():
             raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
 
         command = [0, 0, 0, 0, 0, 0]
-        
-        # allow None values, replace with current position
         current_states = np.asarray(self.get_joint_positions()).astype(np.float32)
-        goal = np.array([g if g is not None else c for g, c in zip(goal, current_states)], dtype=np.float32)
+        adjusted_goal = []
 
+        for goal_value, current_value in zip(goal, current_states):
+            # allow None values, replace with current position
+            if goal_value is None:
+                adjusted_goal.append(current_value)
+            else:
+                adjusted_goal.append(goal_value)
+
+        goal = np.array(adjusted_goal, dtype=np.float32)
         loop_counter = 0
         last_command_time = time.time()
 
