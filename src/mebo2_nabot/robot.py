@@ -325,7 +325,7 @@ class Robot():
     def set_speed(self, speed):
         self.speed = speed
 
-    def set_joint_positions(self, goal, max_loops=15, max_speed=20, stop_threshold=3):
+    def set_joint_positions(self, goal, max_loops=15, max_speed=20, stop_threshold=3, min_goal_threshold=5):
         if goal is None or len(goal) != 4:
             raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
 
@@ -334,7 +334,10 @@ class Robot():
         adjusted_goal = []
 
         for goal_value, current_value in zip(goal, current_states):
-            # allow None values, replace with current position
+            # allow None values, replace with current position 
+            # also dont move if close enough to goal
+            if goal_value is not None and abs(goal_value - current_value) < min_goal_threshold:
+                goal_value = None
             if goal_value is None:
                 adjusted_goal.append(current_value)
             else:
@@ -352,7 +355,7 @@ class Robot():
 
                 diff = (goal - joint_states) * 6
                 # make arm go a bit slower
-                diff[2] /= 4 
+                diff[2] /= 3 
 
                 for i, d in enumerate(diff[:-1]):
                     diff[i] = min(max_speed, max(diff[i], -max_speed))
