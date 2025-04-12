@@ -58,11 +58,16 @@ class GraphicalInterface():
         self.logger.info("Starting ffplay...")
         self.start_ffplay()
         self.robot_ctrl = mebo2_nabot.Robot()
-        self.robot_speaker = mebo2_nabot.Robot.Speaker()
+        self.robot_speaker = mebo2_nabot.Robot.Speaker(
+            numpy_stream=True,
+            rate=8000,
+            channels=1,
+            input_format='s16le',
+            channel_layout='mono'
+        )
         self.microphone_capture = MicrophoneCapture()
         self.is_streaming = False
-        self.write_to_ffmpeg, self.close_ffmpeg = self.robot_speaker.send_audio(numpy_stream=True, rate=8000, channels=1, input_format='s16le', channel_layout='mono')
-
+        
         self.joint_states = []
         self.num_empty_commands = 0
 
@@ -91,11 +96,10 @@ class GraphicalInterface():
         self.logger.info("Stopping Robot...")
         self.stop_robot = True
         self.robot_ctrl.stop()
-
         self.stop_ffplay()
+        self.robot_speaker.close()
         self.parent.quit()
         self.parent.destroy()
-
         sys.exit(0)
 
     def start_ffplay(self):
@@ -225,7 +229,10 @@ class GraphicalInterface():
                 global is_streaming
                 self.logger.info("Key pressed, starting audio capture.")
                 self.microphone_capture.running = True
-                self.microphone_capture.capture_thread = threading.Thread(target=self.microphone_capture.start_capture, args=(self.write_to_ffmpeg,))
+                self.microphone_capture.capture_thread = threading.Thread(
+                    target=self.microphone_capture.start_capture,
+                    args=(self.robot_speaker.write,)
+                )
                 self.microphone_capture.capture_thread.daemon = True
                 self.microphone_capture.capture_thread.start()
                 is_streaming = True   

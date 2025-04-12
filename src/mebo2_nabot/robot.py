@@ -366,8 +366,8 @@ class Robot():
                 last_command_time = time.time()
                 loop_counter += 1
 
-    class Speaker():
-        def send_audio(self, **kwargs):
+    class Speaker:
+        def __init__(self, **kwargs):
             file = kwargs.get('file')
             numpy_stream = kwargs.get('numpy_stream')
             numpy_array = kwargs.get('numpy_array')
@@ -391,20 +391,20 @@ class Robot():
                 '-f', 'alaw', 
                 '-ar', '8000', 
                 '-ac', '1', 
-                "udp://192.168.99.1:8828?connect=1"
+                'udp://192.168.99.1:8828?connect=1'
             ]
 
             if file:
-                if isinstance(file, str) and os.path.isfile(file):
-                    if input_format:
-                        ffmpeg_cmd += ['-f', input_format]
-
-                    ffmpeg_cmd += ['-i', file] + stream_params
-                    subprocess.run(ffmpeg_cmd)
-                    return
-                else:
+                if not (isinstance(file, str) and os.path.isfile(file)):
                     print(f"Can't read file: {file}")
                     return
+                
+                if input_format:
+                    ffmpeg_cmd += ['-f', input_format]
+                    
+                ffmpeg_cmd += ['-i', file] + stream_params            
+                subprocess.run(ffmpeg_cmd)
+                return
 
             if not all([rate, channels, input_format, channel_layout]):
                 raise ValueError("Missing required parameters for numpy mode.")
@@ -417,29 +417,31 @@ class Robot():
                 '-i', 'pipe:0'
             ] + stream_params
 
-            ffmpeg = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+            self.ffmpeg = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
-            def write(data):
-                ffmpeg.stdin.write(data)
-
-            def close():
-                ffmpeg.stdin.close()
-                ffmpeg.wait()
-        
             if numpy_array is not None:
                 chunk_size = 128
                 for i in range(0, len(numpy_array), chunk_size):
-                    chunk = numpy_array[i:i + chunk_size]
-                    write(chunk.tobytes())
+                    self.write(numpy_array[i:i + chunk_size].tobytes())
                     time.sleep(chunk_size / rate)
-                close()
+                self.close()
 
-            elif numpy_stream is not None:
-                return write, close    
+            elif numpy_stream:
+                pass
+            
+            else:
+                print("Please specify either a file or numpy array/stream.")
+                self.ffmpeg = None
 
-            else: 
-                print("Please specify either a file or numpy array/stream.") 
-                return None, None
+        def write(self, data):
+            if self.ffmpeg:
+                self.ffmpeg.stdin.write(data)
+
+        def close(self):
+            if self.ffmpeg:
+                self.ffmpeg.stdin.close()
+                self.ffmpeg.wait()
+
 
     class Microphone():
         def __init__(self, rtsp_url, rate=16000, channels=1, chunk_size=4000):
