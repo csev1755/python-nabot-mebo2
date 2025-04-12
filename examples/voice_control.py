@@ -40,7 +40,7 @@ class VoskSpeechRecognizer:
 
 def start_speech_recognition():
     audio_input = mebo2_nabot.Robot.Microphone()
-    audio_input.start()
+    audio_input.open()
 
     recognizer = VoskSpeechRecognizer(rate=16000)
 
@@ -54,7 +54,7 @@ def start_speech_recognition():
     except KeyboardInterrupt:
         print("Stopping audio capture...")
     finally:
-        audio_input.stop()
+        audio_input.close()
 
 if __name__ == "__main__":
     rtsp_url = "rtsp://192.168.99.1/media/stream2"

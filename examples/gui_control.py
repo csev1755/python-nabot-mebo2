@@ -59,13 +59,12 @@ class GraphicalInterface():
         self.logger.info("Starting ffplay...")
         self.start_ffplay()
         self.robot_speaker = mebo2_nabot.Robot.Speaker(
-            numpy_stream=True,
             rate=8000,
             channels=1,
             input_format='s16le',
             channel_layout='mono'
         )
-        self.robot_speaker.open_numpy_stream()
+        self.robot_speaker.open()
         self.microphone_capture = MicrophoneCapture()
         self.is_streaming = False
         
@@ -99,7 +98,7 @@ class GraphicalInterface():
         self.robot_ctrl.claw_led_off()
         self.robot_ctrl.stop()
         self.stop_ffplay()
-        self.robot_speaker.close_numpy_stream()
+        self.robot_speaker.close()
         self.parent.quit()
         self.parent.destroy()
         sys.exit(0)
@@ -234,7 +233,7 @@ class GraphicalInterface():
                 self.microphone_capture.running = True
                 self.microphone_capture.capture_thread = threading.Thread(
                     target=self.microphone_capture.start_capture,
-                    args=(self.robot_speaker.write_numpy_stream,)
+                    args=(self.robot_speaker.write,)
                 )
                 self.microphone_capture.capture_thread.daemon = True
                 self.microphone_capture.capture_thread.start()

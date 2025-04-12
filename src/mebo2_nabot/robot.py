@@ -410,7 +410,7 @@ class Robot():
                 '-i', 'pipe:0'
             ] + self.stream_params
 
-        def play_file(self, file):
+        def send_file(self, file):
             if file:
                 if not (isinstance(file, str) and os.path.isfile(file)):
                     print(f"Can't read file: {file}")
@@ -423,7 +423,7 @@ class Robot():
                 subprocess.run(self.ffmpeg_cmd)
                 return
 
-        def play_numpy_array(self, array):
+        def send_array(self, array):
             if not all([self.rate, self.channels, self.input_format, self.channel_layout]):
                 raise ValueError("Missing required parameters for numpy mode.")
 
@@ -436,18 +436,18 @@ class Robot():
                 time.sleep(chunk_size / self.rate)
             self.close_numpy_stream()
 
-        def open_numpy_stream(self):
+        def open(self):
             self.ffmpeg_cmd += self.numpy_cmd
             self.ffmpeg = subprocess.Popen(self.ffmpeg_cmd, stdin=subprocess.PIPE)            
 
-        def write_numpy_stream(self, data):
+        def write(self, data):
             if not all([self.rate, self.channels, self.input_format, self.channel_layout]):
                 raise ValueError("Missing required parameters for numpy mode.")            
             
             if self.ffmpeg:
                 self.ffmpeg.stdin.write(data)
 
-        def close_numpy_stream(self):
+        def close(self):
             if self.ffmpeg:
                 self.ffmpeg.stdin.close()
                 self.ffmpeg.wait()
@@ -458,7 +458,7 @@ class Robot():
             self.channels = channels
             self.chunk_size = chunk_size
 
-        def start(self):
+        def open(self):
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-loglevel', 'quiet',
@@ -470,9 +470,6 @@ class Robot():
                 '-'
             ]
             self.process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, bufsize=10**8)
-        
-        def stop(self):
-            self.process.terminate()
 
         def read(self):
             while True:
@@ -482,10 +479,13 @@ class Robot():
                 audio_np = np.frombuffer(raw, dtype=np.int16)
                 yield audio_np
 
+        def close(self):
+            self.process.terminate() 
+
     class Camera():
-        def __init__(self):
+        def open(self):
             self.cap = cv2.VideoCapture("rtsp://192.168.99.1/media/stream2")
-            self.running = self.cap.isOpened()
+            self.cap.isOpened()
 
         def read(self):
             if not self.cap:
@@ -497,5 +497,5 @@ class Robot():
                     return None
                 return frame
 
-        def stop(self):
+        def close(self):
             self.cap.release()

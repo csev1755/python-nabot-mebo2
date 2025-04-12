@@ -5,6 +5,7 @@ from ultralytics import YOLO
 if __name__ == "__main__":
     video = mebo2_nabot.Robot.Camera()
     model = YOLO("yolo11n.pt")
+    video.open()
 
     while True:
         frame = video.read()
@@ -17,5 +18,5 @@ if __name__ == "__main__":
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    video.stop()
+    video.close()
     cv2.destroyAllWindows()
