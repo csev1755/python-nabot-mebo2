@@ -65,6 +65,7 @@ class GraphicalInterface():
             input_format='s16le',
             channel_layout='mono'
         )
+        self.robot_speaker.open_numpy_stream()
         self.microphone_capture = MicrophoneCapture()
         self.is_streaming = False
         
@@ -97,7 +98,7 @@ class GraphicalInterface():
         self.stop_robot = True
         self.robot_ctrl.stop()
         self.stop_ffplay()
-        self.robot_speaker.close()
+        self.robot_speaker.close_numpy_stream()
         self.parent.quit()
         self.parent.destroy()
         sys.exit(0)
@@ -231,7 +232,7 @@ class GraphicalInterface():
                 self.microphone_capture.running = True
                 self.microphone_capture.capture_thread = threading.Thread(
                     target=self.microphone_capture.start_capture,
-                    args=(self.robot_speaker.write,)
+                    args=(self.robot_speaker.write_numpy_stream,)
                 )
                 self.microphone_capture.capture_thread.daemon = True
                 self.microphone_capture.capture_thread.start()
