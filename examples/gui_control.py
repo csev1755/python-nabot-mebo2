@@ -96,6 +96,7 @@ class GraphicalInterface():
     def on_closing(self):
         self.logger.info("Stopping Robot...")
         self.stop_robot = True
+        self.robot_ctrl.claw_led_off()
         self.robot_ctrl.stop()
         self.stop_ffplay()
         self.robot_speaker.close_numpy_stream()
