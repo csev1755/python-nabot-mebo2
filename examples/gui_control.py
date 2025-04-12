@@ -255,5 +255,5 @@ class GraphicalInterface():
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s  %(name)s  %(levelname)s: %(message)s', level=logging.INFO)
-    app = GraphicalInterface(enable_joysticks=True, robot_init_pos=[100, 75, 50, 0])
+    app = GraphicalInterface(enable_joysticks=True)
     app.run()
