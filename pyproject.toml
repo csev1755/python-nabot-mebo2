@@ -13,5 +13,6 @@ readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
     "requests",
-    "numpy"
+    "numpy",
+    "opencv_python"
 ]

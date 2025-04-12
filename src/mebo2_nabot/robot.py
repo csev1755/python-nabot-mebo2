@@ -3,6 +3,7 @@ import logging
 import requests
 import os
 import subprocess
+import cv2
 import numpy as np
 
 class Robot():
@@ -480,4 +481,22 @@ class Robot():
                 if not raw:
                     break
                 audio_np = np.frombuffer(raw, dtype=np.int16)
-                yield audio_np        
+                yield audio_np
+
+    class Camera():
+        def __init__(self):
+            self.cap = cv2.VideoCapture("rtsp://192.168.99.1/media/stream2")
+            self.running = self.cap.isOpened()
+
+        def read(self):
+            if not self.cap:
+                return None
+
+            while True:
+                ret, frame = self.cap.read()
+                if not ret:
+                    return None
+                return frame
+
+        def stop(self):
+            self.cap.release()

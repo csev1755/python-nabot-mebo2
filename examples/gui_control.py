@@ -104,6 +104,7 @@ class GraphicalInterface():
         self.parent.destroy()
         sys.exit(0)
 
+    # Using ffplay allows easy video + audio sync and low latency
     def start_ffplay(self):
 
         command = [
