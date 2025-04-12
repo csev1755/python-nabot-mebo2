@@ -439,3 +439,34 @@ class Robot():
         else: 
             print("Please specify either a file or numpy array/stream.") 
             return None, None
+
+class Microphone():
+    def __init__(self, rtsp_url, rate=16000, channels=1, chunk_size=4000):
+        self.rtsp_url = rtsp_url
+        self.rate = rate
+        self.channels = channels
+        self.chunk_size = chunk_size
+
+    def start(self):
+        ffmpeg_cmd = [
+            'ffmpeg',
+            '-loglevel', 'quiet',
+            '-i', self.rtsp_url,
+            '-f', 's16le',
+            '-acodec', 'pcm_s16le',
+            '-ac', str(self.channels),
+            '-ar', str(self.rate),
+            '-'
+        ]
+        self.process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, bufsize=10**8)
+    
+    def stop(self):
+        self.process.terminate()
+
+    def read_chunks(self):
+        while True:
+            raw = self.process.stdout.read(self.chunk_size * 2)
+            if not raw:
+                break
+            audio_np = np.frombuffer(raw, dtype=np.int16)
+            yield audio_np        
