@@ -38,8 +38,8 @@ class VoskSpeechRecognizer:
         elif "open" in text:
             self.robot.claw_open(100)   
 
-def start_speech_recognition(rtsp_url):
-    audio_input = mebo2_nabot.Robot.Microphone(rtsp_url)
+def start_speech_recognition():
+    audio_input = mebo2_nabot.Robot.Microphone()
     audio_input.start()
 
     recognizer = VoskSpeechRecognizer(rate=16000)
@@ -58,4 +58,4 @@ def start_speech_recognition(rtsp_url):
 
 if __name__ == "__main__":
     rtsp_url = "rtsp://192.168.99.1/media/stream2"
-    start_speech_recognition(rtsp_url)
+    start_speech_recognition()

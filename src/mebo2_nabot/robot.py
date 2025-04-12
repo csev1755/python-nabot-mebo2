@@ -453,8 +453,7 @@ class Robot():
                 self.ffmpeg.wait()
 
     class Microphone():
-        def __init__(self, rtsp_url, rate=16000, channels=1, chunk_size=4000):
-            self.rtsp_url = rtsp_url
+        def __init__(self, rate=16000, channels=1, chunk_size=4000):
             self.rate = rate
             self.channels = channels
             self.chunk_size = chunk_size
@@ -463,7 +462,7 @@ class Robot():
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-loglevel', 'quiet',
-                '-i', self.rtsp_url,
+                '-i', "rtsp://192.168.99.1/media/stream2",
                 '-f', 's16le',
                 '-acodec', 'pcm_s16le',
                 '-ac', str(self.channels),
