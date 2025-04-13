@@ -1,3 +1,3 @@
-PyAudio>=0.2.14
+pyaudio>=0.2.14
 ultralytics>=8.3.107
-vosk>=0.3.45
+vosk>=0.3.44
