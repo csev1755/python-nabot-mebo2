@@ -43,10 +43,10 @@ class Robot():
 
         self.logger = logging.getLogger('Robot Commands')
 
-        init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
+        init_commands = ["ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
 
         for cmd in init_commands:
-            self._send_single_cmd(cmd, 0)
+            self._send_single_cmd(cmd)
 
         self.logger.info('Initialized robot')
 
@@ -59,19 +59,6 @@ class Robot():
         result = "!" + self._to_base64(self.messageCount & 63)
         self.messageCount += 1
         return result
-
-    def _enc_spd(self, speed):
-        """Encode speed value into base64 format.
-        
-        Args:
-            speed (int): Speed value to encode (0-100)
-            
-        Returns:
-            str: Encoded speed string or empty string if speed is None
-        """
-        if speed:
-            return self._enc_base64(speed, 2)
-        else: return ""
     
     def _to_base64(self, val):
         """Convert a value to base64 character using custom alphabet.
@@ -112,7 +99,7 @@ class Robot():
         Returns:
             dict: JSON response or None if all retries fail
         """
-        URL = "http://192.168.99.1/ajax/command.json?" + self._gen_single_cmd(1, cmd, value)
+        URL = "http://192.168.99.1/ajax/command.json?" + self._gen_single_cmd(cmd, number=1, value=value)
 
         for attempt in range(retries):
             try:
@@ -136,7 +123,7 @@ class Robot():
         for i in range(len(self.robot_command)) :
             if (i > 0):
                 URL += "&";
-            URL += self._gen_single_cmd(i + 1, self.robot_command_names[i], self.robot_command[i])
+            URL += self._gen_single_cmd(number=i + 1, command=self.robot_command_names[i], value=self.robot_command[i])
         time.sleep(0.01)
         try:
             r = requests.get(url = URL, verify=False, timeout=1)
@@ -145,114 +132,75 @@ class Robot():
         except Exception as e:
             self.logger.warning(e)
 
-    def _gen_single_cmd(self, number, command, parameter):
-        """Generate URL suffix for a single command.
+    def _gen_single_cmd(self, command, number=None, value=None):
+        """Generate URL suffix for a single command."""
+
+        static_commands = {
+            "EYE_LED_STATE": "eye_led_state()",
+            "CLAW_LED_STATE": "claw_led_state()",
+            "GET_SSID": "get_ssid()",
+            "VIDEO_FLIP": "video_flip(0)",
+            "VIDEO_MIRROR": "video_mirror(0)",
+        }
+
+        static_messages = {
+            "BAT": "BAT=?",
+            "ARM_QUERY": "ARM=?",
+            "WRIST_UD_QUERY": "WRIST_UD=?",
+            "WRIST_ROTATE_QUERY": "WRIST_ROTATE=?",
+            "CLAW_QUERY": "CLAW=?",
+            "VERSION_QUERY": "VER=?",
+            "QUERY_EVENT": "*",
+            "SAVE_REG": "REG=FLUSH",
+            "ACEAA": "!ACEAA",
+            "BCQAA": "!BCQAA",
+            "CCIAA": "!CCIAA",
+            "INIT_ALL": "!CVVDSAAAAAAAAAAAAAAAAAAAAAAAAYtBQfA4uAAAAAAAAAAQfAoPAcXAAAA",            
+        }
+
+        sequential_messages = {
+            "REBOOT_CMD": "DE",
+            "CAL_ARM": "DE",
+            "CAL_WRIST_UD": "DI",
+            "CAL_WRIST_ROTATE": "DQ",
+            "CAL_CLAW": "Dg",
+            "CAL_ALL": "D_",
+            "LIGHT_ON": "RAAAAAAAad",
+            "LIGHT_OFF": "RAAAAAAAac",
+        }
+
+        encoded_messages = {
+            "WHEEL_LEFT_FORWARD": "F",
+            "WHEEL_RIGHT_FORWARD": "E",
+            "WHEEL_LEFT_SPEED": "F",
+            "WHEEL_RIGHT_SPEED": "E",
+            "ARM_UP": "G",
+            "WRIST_UD_UP": "H",
+            "WRIST_ROTATE_LEFT": "I",
+            "CLAW_POSITION": "N",
+        }
+
+        if command in static_commands:
+            return f"command{number}={static_commands[command]}"
         
-        Args:
-            number (int): Command sequence number
-            command (str): Command name
-            parameter: Command parameter value
-            
-        Returns:
-            str: Command suffix
-        """
-        cmd_str = self._command_string(command, parameter)
-        if(command == "EYE_LED_STATE"):
-            return "command" + str(number) + "=eye_led_state()"
-        if(command == "CLAW_LED_STATE"):
-            return "command" + str(number) + "=claw_led_state()"
-        if(command == "GET_SSID"):
-            return "command" + str(number) + "=get_ssid()"
-        if(command == "VIDEO_FLIP"):
-            return "command" + str(number) + "=video_flip(0)"
-        if(command == "VIDEO_MIRROR"):
-            return "command" + str(number) + "=video_mirror(0)"
-        if(command == "ACEAA"):
-            return "command" + str(number) + "=mebolink_message_send(!ACEAA)"
-        if(command == "BCQAA"):
-            return "command" + str(number) + "=mebolink_message_send(!BCQAA)"
-        if(command == "CCIAA"):
-            return "command" + str(number) + "=mebolink_message_send(!CCIAA)"
-        if(command == "INIT_ALL"):
-            return "command" + str(number) + "=mebolink_message_send(!CVVDSAAAAAAAAAAAAAAAAAAAAAAAAYtBQfA4uAAAAAAAAAAQfAoPAcXAAAA)"
-        return "command" + str(number) + "=mebolink_message_send(" + cmd_str + ")"
-    
-    def _command_string(self, cmd, para):
-        """Generate a command string.
+        if command in static_messages:
+            return f"command{number}=mebolink_message_send({static_messages[command]})"
+
+        if command in sequential_messages:
+            return f"command{number}=mebolink_message_send({self._new_cmd() + sequential_messages[command]})"
+
+        if command in encoded_messages:
+            return f"command{number}=mebolink_message_send({self._new_cmd() + encoded_messages[command] + self._enc_base64(value, 2)})"
+
+        if command == "QUERY_REG":
+            digits = f"{int(value/100)%10}{int(value/10)%10}{int(value)%10}"
+            return f"command{number}=mebolink_message_send(REG{digits}=?)"
+
+        if command == "SET_REG":
+            return f"command{number}=mebolink_message_send()"
         
-        Args:
-            cmd (str): Command name
-            para: Command parameter
-            
-        Returns:
-            str: Encoded command string
-        """
-        if ( cmd == "BAT"):
-            return "BAT=?"
-        elif ( cmd == "LIGHT_ON"):
-            return self._new_cmd() + "RAAAAAAAad"
-        elif ( cmd == "LIGHT_OFF"):
-            return self._new_cmd() + "RAAAAAAAac"
+        return f"command{number}=mebolink_message_send()"
 
-        elif ( cmd == "WHEEL_LEFT_FORWARD"):
-            return self._new_cmd() + "F" + self._enc_spd(para)
-        elif ( cmd == "WHEEL_RIGHT_FORWARD"):
-            return self._new_cmd() + "E" + self._enc_spd(para)
-
-        elif ( cmd == "ARM_UP"):
-            return self._new_cmd() + "G" + self._enc_spd(para)
-        elif ( cmd == "ARM_QUERY"):
-            return "ARM=?"
-
-        elif ( cmd == "WRIST_UD_UP"):
-            return self._new_cmd() + "H" + self._enc_spd(para)
-        elif ( cmd == "WRIST_UD_QUERY"):
-            return "WRIST_UD=?"
-
-        elif ( cmd == "WRIST_ROTATE_LEFT"):
-            return self._new_cmd() + "I" + self._enc_spd(para)
-        elif ( cmd == "WRIST_ROTATE_QUERY"):
-            return "WRIST_ROTATE=?"
-
-        elif ( cmd == "CLAW_POSITION"):
-            return self._new_cmd() + "N" + self._enc_spd(para)
-        elif ( cmd == "CLAW_QUERY"):
-            return "CLAW=?"
-
-        elif ( cmd == "VERSION_QUERY"):
-            return "VER=?"
-        elif ( cmd == "REBOOT_CMD"):
-            return self._new_cmd() + "DE"
-
-        elif ( cmd == "WHEEL_LEFT_SPEED"):
-            return self._new_cmd() + "F" + self._enc_spd(para)
-        elif ( cmd == "WHEEL_RIGHT_SPEED"):
-            return self._new_cmd() + "E" + self._enc_spd(para)
-
-        # not entirely sure what these remaining commands do and how we can implement them
-        elif ( cmd == "CAL_ARM"):
-            return self._new_cmd() + "DE"
-        elif ( cmd == "CAL_WRIST_UD"):
-            return self._new_cmd() + "DI"
-        elif ( cmd == "CAL_WRIST_ROTATE"):
-            return self._new_cmd() + "DQ"
-        elif ( cmd == "CAL_CLAW"):
-            return self._new_cmd() + "Dg"
-        elif ( cmd == "CAL_ALL"):
-            return self._new_cmd() + "D_"
-        
-        elif ( cmd == "SET_REG"):
-            return ""
-        elif ( cmd == "QUERY_REG"):
-            return "REG" + (para / 100 % 10) + (para / 10 % 10) + (para % 10) + "=?"
-        elif ( cmd == "SAVE_REG"):
-            return "REG=FLUSH"
-
-        elif ( cmd == "QUERY_EVENT"):
-            return "*"
-        else:
-            return ""
-        
     def _apply_limits(self, command: list[float], current_pos: list[float]) -> list[float] | None:
         """Apply safety limits to joint commands to prevent out-of-range movements.
         
