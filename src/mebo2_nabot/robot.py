@@ -10,7 +10,6 @@ class Robot():
     """Main robot control class implementing singleton pattern."""
     
     robot_command = [0, 0, 0, 0, 0, 0]
-    last_robot_command = [0, 0, 0, 0, 0, 0]
     # claw stops on its own, dont need in stop command
     stop_command = [0, 0, 0, 0, 0]
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
@@ -141,7 +140,6 @@ class Robot():
             if (i > 0):
                 URL += "&";
             URL += self._gen_single_cmd(i + 1, self.robot_command_names[i], self.robot_command[i])
-            self.last_robot_command[i] = self.robot_command[i]
         time.sleep(0.01)
         try:
             r = requests.get(url = URL, verify=False, timeout=1)
