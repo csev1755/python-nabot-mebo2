@@ -10,8 +10,6 @@ class Robot():
     """Main robot control class implementing singleton pattern."""
     
     robot_command = [0, 0, 0, 0, 0, 0]
-    # claw stops on its own, dont need in stop command
-    stop_command = [0, 0, 0, 0, 0]
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
     robot_joint_position = [0, 0, 0, 0]
     robot_joint_position_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
@@ -335,7 +333,8 @@ class Robot():
     def stop(self):
         """Stop all movement."""
         
-        self.send_joint_values(self.stop_command)
+        # claw stops on its own, dont need in stop command
+        self.send_joint_values([0, 0, 0, 0, 0])
 
     def left(self, steps, sleep=0.5):
         """Move left for specified number of steps.
