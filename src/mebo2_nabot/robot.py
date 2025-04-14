@@ -122,7 +122,7 @@ class Robot():
             try:
                 r = requests.get(url=URL, verify=False, timeout=1)
                 return r.json()
-            except requests.RequestException or r is none as e:
+            except requests.RequestException or r.json is None as e:
                 self.logger.warning(f"Attempt {attempt + 1}/{retries} failed: {e}")
                 time.sleep(delay)
 
