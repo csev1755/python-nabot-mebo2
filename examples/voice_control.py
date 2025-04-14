@@ -39,7 +39,7 @@ class VoskSpeechRecognizer:
             self.robot.claw_open(100)   
 
 def start_speech_recognition():
-    audio_input = mebo2_nabot.Robot.Microphone()
+    audio_input = mebo2_nabot.Robot.Microphone(rate=16000)
     audio_input.open()
 
     recognizer = VoskSpeechRecognizer(rate=16000)

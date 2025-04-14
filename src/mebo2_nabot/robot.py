@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 
 class Robot():
+    """Main robot control class implementing singleton pattern."""
+    
     robot_command = [0, 0, 0, 0, 0, 0]
     last_robot_command = [0, 0, 0, 0, 0, 0]
     # claw stops on its own, dont need in stop command
@@ -23,11 +25,21 @@ class Robot():
 
     @staticmethod
     def getInstance():
-      if Robot.__instance == None:
-         Robot()
-      return Robot.__instance
+        """Get the singleton instance of the Robot class.
+        
+        Returns:
+            Robot: The singleton instance
+        """
+        if Robot.__instance == None:
+            Robot()
+        return Robot.__instance
     
     def __init__(self):
+        """Initialize the connection and send initialization commands.
+        
+        Raises:
+            Exception: If trying to create multiple instances (singleton violation)
+        """
         if Robot.__instance != None:
             raise Exception("Robot is a singleton!")
         else:
@@ -43,40 +55,85 @@ class Robot():
         self.logger.info('Initialized robot')
 
     def _new_cmd(self):
+        """Generate a new command prefix with incrementing message count.
+        
+        Returns:
+            str: Command prefix string
+        """
         result = "!" + self._to_base64(self.messageCount & 63)
         self.messageCount += 1
         return result
 
     def _enc_spd(self, speed):
+        """Encode speed value into base64 format.
+        
+        Args:
+            speed (int): Speed value to encode (0-100)
+            
+        Returns:
+            str: Encoded speed string or empty string if speed is None
+        """
         if speed:
             return self._enc_base64(speed, 2)
-        # allow _send_single_command to have a value parameter of None
         else: return ""
     
     def _to_base64(self, val):
+        """Convert a value to base64 character using custom alphabet.
+        
+        Args:
+            val (int): Value to convert (0-63)
+            
+        Returns:
+            str: Single base64 character
+        """
         str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
         return "" + str[val & 63]
 
     def _enc_base64(self, val, chars_count):
+        """Encode a value into multiple base64 characters.
+        
+        Args:
+            val (int): Value to encode
+            chars_count (int): Number of characters to use
+            
+        Returns:
+            str: Encoded base64 string
+        """
         result = ""
         for i in range(chars_count):
             result += self._to_base64(int(val) >> int(i * 6))
         return result            
 
     def _send_single_cmd(self, cmd, value=None, retries=5, delay=0.5):
+        """Send a single command with retry logic.
+        
+        Args:
+            cmd (str): Command name to send
+            value (int, optional): Parameter value for the command
+            retries (int, optional): Number of retry attempts. Defaults to 5
+            delay (float, optional): Delay between retries in seconds. Defaults to 0.5
+            
+        Returns:
+            dict: JSON response or None if all retries fail
+        """
         URL = "http://192.168.99.1/ajax/command.json?" + self._gen_single_cmd(1, cmd, value)
 
         for attempt in range(retries):
             try:
                 r = requests.get(url=URL, verify=False, timeout=1)
                 return r.json()
-            except requests.RequestException as e:
+            except requests.RequestException or r is none as e:
                 self.logger.warning(f"Attempt {attempt + 1}/{retries} failed: {e}")
                 time.sleep(delay)
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
     
     def send_joint_values(self, jointValues):
+        """Send multiple joint/motor commands.
+        
+        Args:
+            jointValues (list): List of command values for each joint/motor
+        """
         self.robot_command = jointValues
         URL = "http://192.168.99.1/ajax/command.json?"
 
@@ -94,6 +151,16 @@ class Robot():
             self.logger.warning(e)
 
     def _gen_single_cmd(self, number, command, parameter):
+        """Generate URL suffix for a single command.
+        
+        Args:
+            number (int): Command sequence number
+            command (str): Command name
+            parameter: Command parameter value
+            
+        Returns:
+            str: Command suffix
+        """
         cmd_str = self._command_string(command, parameter)
         if(command == "EYE_LED_STATE"):
             return "command" + str(number) + "=eye_led_state()"
@@ -116,6 +183,15 @@ class Robot():
         return "command" + str(number) + "=mebolink_message_send(" + cmd_str + ")"
     
     def _command_string(self, cmd, para):
+        """Generate a command string.
+        
+        Args:
+            cmd (str): Command name
+            para: Command parameter
+            
+        Returns:
+            str: Encoded command string
+        """
         if ( cmd == "BAT"):
             return "BAT=?"
         elif ( cmd == "LIGHT_ON"):
@@ -183,6 +259,15 @@ class Robot():
             return ""
         
     def _apply_limits(self, command: list[float], current_pos: list[float]) -> list[float] | None:
+        """Apply safety limits to joint commands to prevent out-of-range movements.
+        
+        Args:
+            command (list): Desired joint commands
+            current_pos (list): Current joint positions
+            
+        Returns:
+            list: Limited safe commands. Out-of-range values return 0.
+        """
         limited_command = []
         limited_command.extend(command[:2])
 
@@ -201,6 +286,7 @@ class Robot():
 
             limited_command.append(cmd)
 
+        # different logic for claw
         if len(command) > 5:
             target_claw = command[5]
             limited_command.append(max(0, min(100, target_claw)))
@@ -209,6 +295,13 @@ class Robot():
 
 
     def _do_steps(self, command: list[float], steps, sleep):
+        """Execute a movement command over multiple steps.
+        
+        Args:
+            command (list): Joint commands to execute
+            steps (int): Number of steps to execute
+            sleep (float): Time to sleep between steps
+        """
         for i in range(steps):
             current_pos = self.get_joint_positions()
             safe_command = self._apply_limits(command, current_pos)
@@ -218,6 +311,11 @@ class Robot():
             else: break        
 
     def get_joint_positions(self):
+        """Query and return current joint positions.
+        
+        Returns:
+            list: Current positions of all joints
+        """
         fallback_state = self.robot_joint_position
         for cmd in self.robot_joint_position_names:
             try:
@@ -237,53 +335,117 @@ class Robot():
 
         return self.robot_joint_position    
 
-    def stop(self, milliseconds:float = 0):
-        if milliseconds > 0:
-            time.sleep(milliseconds/1000)
+    def stop(self):
+        """Stop all movement."""
         
         self.send_joint_values(self.stop_command)
 
     def left(self, steps, sleep=0.5):
+        """Move left for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.5)
+        """
         self._do_steps([-self.speed, self.speed], steps, sleep)
         self.stop()
 
     def right(self, steps, sleep=0.5):
+        """Move right for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.5)
+        """
         self._do_steps([self.speed, -self.speed], steps, sleep)
         self.stop()
 
     def forward(self, steps, sleep=0.5):
+        """Move forward for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.5)
+        """
         self._do_steps([self.speed, self.speed], steps, sleep)
         self.stop()
 
     def backward(self, steps, sleep=0.5):
+        """Move backward for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.5)
+        """
         self._do_steps([-self.speed, -self.speed], steps, sleep)            
         self.stop()
 
     def arm_up(self, steps, sleep=0.1):
+        """Raise arm for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.1)
+        """
         self._do_steps([0, 0, self.speed], steps, sleep) 
         self.stop()
 
     def arm_down(self, steps, sleep=0.1):
+        """Lower arm for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.1)
+        """
         self._do_steps([0, 0, -self.speed], steps, sleep)           
         self.stop()
 
     def wrist_up(self, steps, sleep=0.1):
+        """Move wrist up for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.1)
+        """
         self._do_steps([0, 0, 0, self.speed], steps, sleep)
         self.stop()
 
     def wrist_down(self, steps, sleep=0.1):
+        """Move wrist down for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.1)
+        """
         self._do_steps([0, 0, 0, -self.speed], steps, sleep)
         self.stop()
 
     def wrist_left(self, steps, sleep=0.1):
+        """Rotate wrist left for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.1)
+        """
         self._do_steps([0, 0, 0, 0, self.speed], steps, sleep)
         self.stop()
 
     def wrist_right(self, steps, sleep=0.1):
+        """Rotate wrist right for specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+            sleep (float, optional): Time between steps (default 0.1)
+        """
         self._do_steps([0, 0, 0, 0, -self.speed], steps, sleep)  
         self.stop()
 
     def claw_open(self, steps):
+        """Open claw by specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+        """
         current_pos = self.get_joint_positions()
         # arm steps unreliably if less than 3, cap to 3
         if steps < 3: steps = 3
@@ -292,6 +454,11 @@ class Robot():
         self.send_joint_values(safe_command)
 
     def claw_close(self, steps):
+        """Close claw by specified number of steps.
+        
+        Args:
+            steps (int): Number of movement steps
+        """
         current_pos = self.get_joint_positions()
         if steps < 3: steps = 3
         new_position = current_pos[3] + steps
@@ -299,34 +466,42 @@ class Robot():
         self.send_joint_values(safe_command)    
 
     def claw_led_on(self):
+        """Turn on the claw LED."""
         self._send_single_cmd("LIGHT_ON")
 
     def claw_led_off(self):
+        """Turn off the claw LED."""
         self._send_single_cmd("LIGHT_OFF")        
     
     def toggle_claw_led(self):
+        """Toggle claw LED on and off."""
         response = self._send_single_cmd("CLAW_LED_STATE")
         if response['response'] == "ON":
             self._send_single_cmd("LIGHT_OFF")
         else:
             self._send_single_cmd("LIGHT_ON")
 
-    def pick(self):
-        self.set_joint_positions([100, 67, 48, 1])
-        self.claw_close(steps=100)
-        self.set_joint_positions([90, 67, 48, 100])
-
-    def place(self):
-        self.set_joint_positions([65, 67, 48, 100])
-        self.forward(25, 2)
-        self.claw_open(steps=100)
-        self.backward(25, 2)
-        self.set_joint_positions([100, 67, 48, 1])
-
     def set_speed(self, speed):
+        """Set default movement speed.
+        
+        Args:
+            speed (int): Speed value (0-100)
+        """
         self.speed = speed
 
     def set_joint_positions(self, goal, max_loops=15, max_speed=20, stop_threshold=3, min_goal_threshold=5):
+        """Move joints to specified positions with smooth motion control.
+        
+        Args:
+            goal (list): Target positions for each joint (use None for joints that shouldn't move)
+            max_loops (int): Maximum control loop iterations
+            max_speed (int): Maximum movement speed
+            stop_threshold (int): Position difference threshold to stop
+            min_goal_threshold (int): Minimum position change to execute movement
+            
+        Raises:
+            ValueError: If goal is not a list of 4 elements
+        """
         if goal is None or len(goal) != 4:
             raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
 
@@ -335,8 +510,6 @@ class Robot():
         adjusted_goal = []
 
         for goal_value, current_value in zip(goal, current_states):
-            # allow None values, replace with current position 
-            # also dont move if close enough to goal
             if goal_value is not None and abs(goal_value - current_value) < min_goal_threshold:
                 goal_value = None
             if goal_value is None:
@@ -377,6 +550,17 @@ class Robot():
                 loop_counter += 1
 
     class Speaker:
+        """Class for handling audio output to the robot's speaker.
+        
+        Uses ffmpeg to stream audio to the robot over UDP.
+        
+        Optional args:
+            rate (int): Audio sample rate
+            channels (int): Number of audio channels
+            input_format (str): Audio input format
+            channel_layout (str): Audio channel layout
+        """
+        
         def __init__(self, **kwargs):
             self.rate = kwargs.get('rate')
             self.channels = kwargs.get('channels')
@@ -411,6 +595,12 @@ class Robot():
             ] + self.stream_params
 
         def send_file(self, file):
+            """Stream an audio file to the robot's speaker.
+            Audio format can usually be detected by ffmpeg.
+            
+            Args:
+                file (str): Path of audio file
+            """
             if file:
                 if not (isinstance(file, str) and os.path.isfile(file)):
                     print(f"Can't read file: {file}")
@@ -423,24 +613,43 @@ class Robot():
                 subprocess.run(self.ffmpeg_cmd)
                 return
 
-        def send_array(self, array):
+        def send_array(self, array, buffer_size=128):
+            """Stream audio data from numpy array to robot's speaker. 
+            Requires audio format information passed to instance of class.
+            
+            Args:
+                array (numpy.ndarray): Array to play
+                buffer_size (int): Size of buffers to send in bytes (default is 128)
+                
+            Raises:
+                ValueError: If required parameters are missing
+            """
             if not all([self.rate, self.channels, self.input_format, self.channel_layout]):
                 raise ValueError("Missing required parameters for numpy mode.")
 
             self.ffmpeg_cmd += self.numpy_cmd
             self.ffmpeg = subprocess.Popen(self.ffmpeg_cmd, stdin=subprocess.PIPE)
 
-            chunk_size = 128
-            for i in range(0, len(array), chunk_size):
-                self.write(array[i:i + chunk_size].tobytes())
-                time.sleep(chunk_size / self.rate)
+            for i in range(0, len(array), buffer_size):
+                self.write(array[i:i + buffer_size].tobytes())
+                time.sleep(buffer_size / self.rate)
             self.close_numpy_stream()
 
         def open(self):
+            """Start ffmpeg and open audio stream for writing."""
             self.ffmpeg_cmd += self.numpy_cmd
             self.ffmpeg = subprocess.Popen(self.ffmpeg_cmd, stdin=subprocess.PIPE)            
 
         def write(self, data):
+            """Write numpy data to open stream.
+            Requires audio format information passed to instance of class.
+            
+            Args:
+                data (bytes): Audio data to write
+                
+            Raises:
+                ValueError: If required parameters are missing
+            """
             if not all([self.rate, self.channels, self.input_format, self.channel_layout]):
                 raise ValueError("Missing required parameters for numpy mode.")            
             
@@ -448,46 +657,74 @@ class Robot():
                 self.ffmpeg.stdin.write(data)
 
         def close(self):
+            """Stop ffmpeg and close audio stream."""
             if self.ffmpeg:
                 self.ffmpeg.stdin.close()
                 self.ffmpeg.wait()
 
     class Microphone():
-        def __init__(self, rate=16000, channels=1, chunk_size=4000):
+        """Class for handling audio input from the microphone.
+        
+        Uses ffmpeg to capture the RTSP audio stream.
+        
+        Args:
+            rate (int): Audio sample rate
+            channels (int): Number of audio channels
+            buffer_size (int): Size of audio buffers to read in bytes (default 4000)
+        """
+        
+        def __init__(self, rate, buffer_size=4000):
             self.rate = rate
-            self.channels = channels
-            self.chunk_size = chunk_size
+            self.buffer_size = buffer_size
 
         def open(self):
+            """Open microphone stream."""
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-loglevel', 'quiet',
                 '-i', "rtsp://192.168.99.1/media/stream2",
                 '-f', 's16le',
                 '-acodec', 'pcm_s16le',
-                '-ac', str(self.channels),
+                '-ac', '1',
                 '-ar', str(self.rate),
                 '-'
             ]
             self.process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, bufsize=10**8)
 
         def read(self):
+            """Generator that yields audio buffers from microphone.
+            
+            Yields:
+                numpy.ndarray: Buffers of audio data
+            """
             while True:
-                raw = self.process.stdout.read(self.chunk_size * 2)
+                raw = self.process.stdout.read(self.buffer_size * 2)
                 if not raw:
                     break
                 audio_np = np.frombuffer(raw, dtype=np.int16)
                 yield audio_np
 
         def close(self):
+            """Close microphone stream."""
             self.process.terminate() 
 
     class Camera():
+        """Class for capturing video from the camera.
+        
+        Uses OpenCV to capture the RTSP video stream from robot.
+        """
+        
         def open(self):
+            """Open camera connection."""
             self.cap = cv2.VideoCapture("rtsp://192.168.99.1/media/stream2")
             self.cap.isOpened()
 
         def read(self):
+            """Read a frame from camera.
+            
+            Returns:
+                numpy.ndarray: Video frame or None if capture fails
+            """
             if not self.cap:
                 return None
 
@@ -498,4 +735,5 @@ class Robot():
                 return frame
 
         def close(self):
+            """Close camera connection."""
             self.cap.release()
