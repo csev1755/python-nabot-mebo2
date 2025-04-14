@@ -15,7 +15,6 @@ class Robot():
     robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
     robot_joint_position = [0, 0, 0, 0]
     robot_joint_position_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
-    init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
     messageCount = 0
     # default speed
     speed = 50
@@ -46,10 +45,10 @@ class Robot():
 
         self.logger = logging.getLogger('Robot Commands')
 
-        for cmd in self.init_commands:
-            self._send_single_cmd(cmd, 0)
+        init_commands = ["BAT", "GET_SSID", "VIDEO_FLIP", "VIDEO_MIRROR", "ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
 
-        self.get_joint_positions()
+        for cmd in init_commands:
+            self._send_single_cmd(cmd, 0)
 
         self.logger.info('Initialized robot')
 
