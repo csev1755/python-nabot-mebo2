@@ -14,6 +14,7 @@ class Robot():
     robot_joint_position = [0, 0, 0, 0]
     robot_joint_position_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
     messageCount = 0
+    battery_percent = -1
     # default speed
     speed = 50
     
@@ -47,6 +48,8 @@ class Robot():
 
         for cmd in init_commands:
             self._send_single_cmd(cmd)
+
+        self.get_battery()
 
         self.logger.info('Initialized robot')
 
@@ -277,6 +280,35 @@ class Robot():
                 return fallback_state
 
         return self.robot_joint_position    
+    
+    def get_battery(self):
+        """Query and return an estimated battery charge percentage 
+        
+        Returns:
+            int: Percent estimated battery charge remaining
+        """
+        json = self._send_single_cmd("BAT")
+        
+        if json['response'].startswith("BAT="):
+            response = json['response']
+            value = int(response[4:])
+            # battery value seems like a voltage
+            # 415 seemed to be the lowest value before poweroff
+            # max value at full speed on full battery for me seemed to be about 730 so we'll use that as a baseline
+            # max value at idle was 800 so we'll start with that to estimate before movement
+            # we'll always assume lowest value
+            max_idle = 800
+            max_load = 730
+            min_load = 415
+
+            if self.battery_percent == -1 or value > max_load:
+                percent = max(0, min(100, round((value - min_load) / (max_idle - min_load) * 100)))
+            if value <= max_load:
+                percent = max(0, min(100, round((value - min_load) / (max_load - min_load) * 100)))
+            if self.battery_percent == -1 or percent < self.battery_percent:
+                self.battery_percent = percent
+
+        return self.battery_percent
 
     def stop(self):
         """Stop all movement."""
