@@ -38,20 +38,26 @@ class Robot():
             Exception: If trying to create multiple instances (singleton violation)
         """
         if Robot.__instance != None:
-            raise Exception("Robot is a singleton!")
+            raise RuntimeError("Robot is a singleton")
         else:
             Robot.__instance = self
 
         self.logger = logging.getLogger('Robot Commands')
 
+        # sometimes port 80 closes, poking 554 (RTSP) seems to open it back up
+        try: 
+            requests.get("http://192.168.99.1:554")
+        except: pass
+
         init_commands = ["ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
 
         for cmd in init_commands:
-            self._send_single_cmd(cmd)
+            if not self._send_single_cmd(cmd):
+                raise Exception("Can't connect to robot")
 
         self.get_battery()
 
-        self.logger.info('Initialized robot')
+        self.logger.info('Connected to robot')
 
     def _new_cmd(self):
         """Generate a new command prefix with incrementing message count.
@@ -113,6 +119,7 @@ class Robot():
                 time.sleep(delay)
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
+        return False
     
     def send_joint_values(self, jointValues):
         """Send multiple joint/motor commands.
