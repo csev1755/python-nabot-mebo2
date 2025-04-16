@@ -6,7 +6,7 @@ import subprocess
 import pyaudio
 import tkinter.ttk as ttk
 import tkinter as tk
-from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL
+from tkinter import Frame, RAISED, BOTH, Button, RIGHT, Canvas, Scale, HORIZONTAL, Label
 import mebo2_nabot
 
 class MicrophoneCapture:
@@ -178,15 +178,18 @@ class GraphicalInterface():
                 reset_canvas()
 
             def reset_canvas():
-                self.canvas.create_rectangle(0, 0, 400, 400, fill='black')
+                self.canvas.create_rectangle(0, 0, 400, 400)
                 self.canvas.create_oval(0, 0, 400, 400, fill='black', outline='gray')
                 self.canvas.create_oval(125, 125, 275, 275, fill='gray')
 
-            self.canvas.pack(side='left')
+            self.canvas.pack()
 
             self.canvas.bind('<B1-Motion>', paint)
             self.canvas.bind('<ButtonRelease-1>', reset)
             reset_canvas()
+
+            self.controls_frame = Frame(self.main_frame)
+            self.controls_frame.pack(fill='x', expand=True)
 
             def scale1_command(val):
                 val = self.scale1.get()
@@ -194,7 +197,7 @@ class GraphicalInterface():
             def scale1_stop(event):
                 self.scale1.set(0)
 
-            self.scale1 = Scale(from_=100, to=-100, label='Arm', command=scale1_command)
+            self.scale1 = Scale(self.controls_frame, from_=100, to=-100, label='Arm', command=scale1_command)
             self.scale1.bind('<ButtonRelease-1>', scale1_stop)
             self.scale1.pack(side='left')
 
@@ -204,11 +207,11 @@ class GraphicalInterface():
             def scale2_stop(event):
                 self.scale2.set(0)
 
-            self.scale2 = Scale(from_=100, to=-100, label='Elbow', command=scale2_command)
+            self.scale2 = Scale(self.controls_frame, from_=100, to=-100, label='Elbow', command=scale2_command)
             self.scale2.bind('<ButtonRelease-1>', scale2_stop)
             self.scale2.pack(side='left')
 
-            self.scale3 = Scale(from_=0, to=100, orient=HORIZONTAL, label='Claw')
+            self.scale3 = Scale(self.controls_frame, from_=0, to=100, orient=HORIZONTAL, label='Claw')
             self.scale3.pack(side='top')
 
             def scale4_command(val):
@@ -217,15 +220,15 @@ class GraphicalInterface():
             def scale4_stop(event):
                 self.scale4.set(0)
 
-            self.scale4 = Scale(from_=-100, to=100, orient=HORIZONTAL, command=scale4_command, label='Wrist')
+            self.scale4 = Scale(self.controls_frame, from_=-100, to=100, orient=HORIZONTAL, command=scale4_command, label='Wrist')
             self.scale4.bind('<ButtonRelease-1>', scale4_stop)
             self.scale4.pack(side='top')
 
             def button1_command():
                 self.robot_ctrl.toggle_claw_led()
 
-            self.button1 = Button(text="Claw LED", command=button1_command)
-            self.button1.pack(side='top')
+            self.button1 = Button(self.controls_frame, text="Claw LED", command=button1_command)
+            self.button1.pack(side='bottom')
 
             def button2_press(event):
                 global is_streaming
@@ -245,10 +248,23 @@ class GraphicalInterface():
                 self.microphone_capture.stop_capture()
                 is_streaming = False                   
 
-            self.button2 = Button(text="Talk")
-            self.button2.pack(side='top')
+            self.button2 = Button(self.controls_frame, text="Talk")
+            self.button2.pack(side='bottom')
             self.button2.bind('<ButtonPress-1>', button2_press)
             self.button2.bind('<ButtonRelease-1>', button2_release)
+
+            self.battery_var = tk.StringVar()
+            self.battery_var.set("Battery: --%")
+
+            self.battery_label = Label(self.controls_frame, textvariable=self.battery_var)
+            self.battery_label.pack(side='bottom')
+
+            def update_battery():
+                battery_level = self.robot_ctrl.get_battery()
+                self.battery_var.set(f"Battery: {battery_level}%")
+                self.main_frame.after(1000, update_battery)
+            
+            update_battery()
 
         create_canvas()
         self.robot_controller()
