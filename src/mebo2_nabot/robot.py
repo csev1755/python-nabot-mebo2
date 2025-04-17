@@ -44,11 +44,6 @@ class Robot():
 
         self.logger = logging.getLogger('Robot Commands')
 
-        # sometimes port 80 closes, poking 554 (RTSP) seems to open it back up
-        try: 
-            requests.get("http://192.168.99.1:554")
-        except: pass
-
         init_commands = ["ACEAA", "BCQAA", "CCIAA", "INIT_ALL"]
 
         for cmd in init_commands:
@@ -116,6 +111,9 @@ class Robot():
                 return r.json()
             except requests.RequestException or r.json is None as e:
                 self.logger.warning(f"Attempt {attempt + 1}/{retries} failed: {e}")
+                # sometimes port 80 closes, poking 554 (RTSP) seems to open it back up
+                try: requests.get("http://192.168.99.1:554") 
+                except: pass          
                 time.sleep(delay)
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
