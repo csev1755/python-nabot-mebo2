@@ -8,16 +8,19 @@ import numpy as np
 
 class Robot():
     """Main robot control class implementing singleton pattern."""
-    
-    robot_command = [0, 0, 0, 0, 0, 0]
-    robot_command_names = ["WHEEL_LEFT_FORWARD", "WHEEL_RIGHT_FORWARD", "ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
-    robot_joint_position = [0, 0, 0, 0]
-    robot_joint_position_names = ["ARM_QUERY", "WRIST_UD_QUERY", "WRIST_ROTATE_QUERY", "CLAW_QUERY"]
+
     messageCount = 0
     battery_percent = -1
     # default speed
     speed = 50
-    
+
+    robot_joint_position_dict = {
+    "ARM_UP": 0,
+    "WRIST_UD_UP": 0,
+    "WRIST_ROTATE_LEFT": 0,
+    "CLAW_POSITION": 0
+    }
+
     __instance = None
 
     @staticmethod
@@ -119,22 +122,23 @@ class Robot():
         self.logger.error(f"Failed to send {cmd} after multiple retries")
         return False
     
-    def send_joint_values(self, jointValues):
+    def send_joint_values(self, joint_dict):
         """Send multiple joint/motor commands.
         
         Args:
-            jointValues (list): List of command values for each joint/motor
+            joint_dict (dict): Dictionary mapping joint/motor names to their command values
         """
-        self.robot_command = jointValues
+
         URL = "http://192.168.99.1/ajax/command.json?"
 
-        for i in range(len(self.robot_command)) :
-            if (i > 0):
-                URL += "&";
-            URL += self._gen_single_cmd(number=i + 1, command=self.robot_command_names[i], value=self.robot_command[i])
+        for i, (name, value) in enumerate(joint_dict.items()):
+            if i > 0:
+                URL += "&"
+            URL += self._gen_single_cmd(number=i + 1, command=name, value=value)
+
         time.sleep(0.01)
         try:
-            r = requests.get(url = URL, verify=False, timeout=1)
+            r = requests.get(url=URL, verify=False, timeout=1)
         except requests.exceptions.Timeout:
             self.logger.warning("request timeout")
         except Exception as e:
@@ -209,82 +213,91 @@ class Robot():
         
         return f"command{number}=mebolink_message_send()"
 
-    def _apply_limits(self, command: list[float], current_pos: list[float]) -> list[float] | None:
+    def _apply_limits(self, command: dict[str, float]) -> dict[str, float] | None:
         """Apply safety limits to joint commands to prevent out-of-range movements.
         
         Args:
-            command (list): Desired joint commands
-            current_pos (list): Current joint positions
-            
+            command (dict): Desired joint commands (e.g. {"ARM_UP": 1.0})
+
         Returns:
-            list: Limited safe commands. Out-of-range values return 0.
+            dict: Limited safe commands. Out-of-range values return 0.
         """
-        limited_command = []
-        limited_command.extend(command[:2])
+        limited_command = {}
+        current_pos = self.get_joint_positions()
 
-        for idx, (cmd, pos) in enumerate(zip(command[2:5], current_pos[:3]), start=2):
-            
+        for joint, cmd in command.items():
+            pos = current_pos.get(joint, 0.0)
+
             if cmd == 0.0:
-                limited_command.append(0.0)
+                limited_command[joint] = 0.0
                 continue
-            if idx == 2:
-                # arm position is reversed
+
+            if joint == "ARM_UP":
+                # ARM position is reversed
                 if (cmd < 0 and pos >= 90) or (cmd > 0 and pos <= 10):
-                    return None
-            else:
+                    return 0
+            elif joint in {"WRIST_UD_UP", "WRIST_ROTATE_LEFT"}:
                 if (cmd > 0 and pos >= 90) or (cmd < 0 and pos <= 10):
-                    return None
+                    return 0
+            elif joint == "CLAW_POSITION":
+                limited_command[joint] = max(0, min(100, cmd))
+                continue
 
-            limited_command.append(cmd)
-
-        # different logic for claw
-        if len(command) > 5:
-            target_claw = command[5]
-            limited_command.append(max(0, min(100, target_claw)))
+            limited_command[joint] = cmd
 
         return limited_command
 
 
-    def _do_steps(self, command: list[float], steps, sleep):
+    def _do_steps(self, command: dict[str, float], steps: int, sleep: float):
         """Execute a movement command over multiple steps.
         
         Args:
-            command (list): Joint commands to execute
+            command (dict): Joint commands to execute (e.g., {"ARM_UP": 1.0})
             steps (int): Number of steps to execute
             sleep (float): Time to sleep between steps
         """
         for i in range(steps):
-            current_pos = self.get_joint_positions()
-            safe_command = self._apply_limits(command, current_pos)
+            safe_command = self._apply_limits(command)
             if safe_command:
                 self.send_joint_values(safe_command)
                 time.sleep(sleep)
-            else: break        
+            else: break
+       
 
-    def get_joint_positions(self):
+    def get_joint_positions(self) -> dict[str, int]:
         """Query and return current joint positions.
-        
+
         Returns:
-            list: Current positions of all joints
+            dict: Current positions of all joints
         """
-        fallback_state = self.robot_joint_position
-        for cmd in self.robot_joint_position_names:
+
+        fallback_state = self.robot_joint_position_dict.copy()
+
+        joint_queries = {
+            "ARM_QUERY": "ARM_UP",
+            "WRIST_UD_QUERY": "WRIST_UD_UP",
+            "WRIST_ROTATE_QUERY": "WRIST_ROTATE_LEFT",
+            "CLAW_QUERY": "CLAW_POSITION"
+        }
+
+        for query_name, joint_key in joint_queries.items():
             try:
-                data = self._send_single_cmd(cmd, 0)
-                aJsonString = data['response']
-                if ("ARM" in aJsonString) and (len(aJsonString) >= 4):
-                    self.robot_joint_position[0] = int(aJsonString[4:])
-                elif ("WRIST_UD" in aJsonString) and len(aJsonString) >= 9:
-                    self.robot_joint_position[1] = int(aJsonString[9:])
-                elif ("WRIST_ROTATE" in aJsonString) and len(aJsonString) >= 13:
-                    self.robot_joint_position[2] = int(aJsonString[13:])
-                elif ("CLAW" in aJsonString and len(aJsonString) >= 5):
-                    self.robot_joint_position[3] = int(aJsonString[5:])
-            except:
+                data = self._send_single_cmd(query_name, 0)
+                response = data['response']
+
+                if query_name == "ARM_QUERY" and "ARM" in response and len(response) >= 4:
+                    self.robot_joint_position_dict[joint_key] = int(response[4:])
+                elif query_name == "WRIST_UD_QUERY" and "WRIST_UD" in response and len(response) >= 9:
+                    self.robot_joint_position_dict[joint_key] = int(response[9:])
+                elif query_name == "WRIST_ROTATE_QUERY" and "WRIST_ROTATE" in response and len(response) >= 13:
+                    self.robot_joint_position_dict[joint_key] = int(response[13:])
+                elif query_name == "CLAW_QUERY" and "CLAW" in response and len(response) >= 5:
+                    self.robot_joint_position_dict[joint_key] = int(response[5:])
+            except Exception:
                 self.logger.warning("Error parsing robot's states")
                 return fallback_state
 
-        return self.robot_joint_position    
+        return self.robot_joint_position_dict   
     
     def get_battery(self):
         """Query and return an estimated battery charge percentage 
@@ -319,7 +332,13 @@ class Robot():
         """Stop all movement."""
         
         # claw stops on its own, dont need in stop command
-        self.send_joint_values([0, 0, 0, 0, 0])
+        self.send_joint_values({
+            "WHEEL_LEFT_FORWARD": 0,
+            "WHEEL_RIGHT_FORWARD": 0,
+            "ARM_UP": 0,
+            "WRIST_UD_UP": 0,
+            "WRIST_ROTATE_LEFT": 0
+        })
 
     def left(self, steps, sleep=0.5):
         """Move left for specified number of steps.
@@ -328,7 +347,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.5)
         """
-        self._do_steps([-self.speed, self.speed], steps, sleep)
+        self._do_steps({"WHEEL_LEFT_FORWARD": -self.speed, "WHEEL_RIGHT_FORWARD": self.speed}, steps, sleep)
         self.stop()
 
     def right(self, steps, sleep=0.5):
@@ -338,7 +357,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.5)
         """
-        self._do_steps([self.speed, -self.speed], steps, sleep)
+        self._do_steps({"WHEEL_LEFT_FORWARD": self.speed, "WHEEL_RIGHT_FORWARD": -self.speed}, steps, sleep)
         self.stop()
 
     def forward(self, steps, sleep=0.5):
@@ -348,7 +367,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.5)
         """
-        self._do_steps([self.speed, self.speed], steps, sleep)
+        self._do_steps({"WHEEL_LEFT_FORWARD": self.speed, "WHEEL_RIGHT_FORWARD": self.speed}, steps, sleep)
         self.stop()
 
     def backward(self, steps, sleep=0.5):
@@ -358,7 +377,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.5)
         """
-        self._do_steps([-self.speed, -self.speed], steps, sleep)            
+        self._do_steps({"WHEEL_LEFT_FORWARD": -self.speed, "WHEEL_RIGHT_FORWARD": -self.speed}, steps, sleep)
         self.stop()
 
     def arm_up(self, steps, sleep=0.1):
@@ -368,7 +387,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.1)
         """
-        self._do_steps([0, 0, self.speed], steps, sleep) 
+        self._do_steps({"ARM_UP": self.speed}, steps, sleep)
         self.stop()
 
     def arm_down(self, steps, sleep=0.1):
@@ -378,7 +397,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.1)
         """
-        self._do_steps([0, 0, -self.speed], steps, sleep)           
+        self._do_steps({"ARM_UP": -self.speed}, steps, sleep)
         self.stop()
 
     def wrist_up(self, steps, sleep=0.1):
@@ -388,7 +407,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.1)
         """
-        self._do_steps([0, 0, 0, self.speed], steps, sleep)
+        self._do_steps({"WRIST_UD_UP": self.speed}, steps, sleep)
         self.stop()
 
     def wrist_down(self, steps, sleep=0.1):
@@ -398,7 +417,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.1)
         """
-        self._do_steps([0, 0, 0, -self.speed], steps, sleep)
+        self._do_steps({"WRIST_UD_UP": -self.speed}, steps, sleep)
         self.stop()
 
     def wrist_left(self, steps, sleep=0.1):
@@ -408,7 +427,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.1)
         """
-        self._do_steps([0, 0, 0, 0, self.speed], steps, sleep)
+        self._do_steps({"WRIST_ROTATE_LEFT": self.speed}, steps, sleep)
         self.stop()
 
     def wrist_right(self, steps, sleep=0.1):
@@ -418,7 +437,7 @@ class Robot():
             steps (int): Number of movement steps
             sleep (float, optional): Time between steps (default 0.1)
         """
-        self._do_steps([0, 0, 0, 0, -self.speed], steps, sleep)  
+        self._do_steps({"WRIST_ROTATE_LEFT": -self.speed}, steps, sleep)
         self.stop()
 
     def claw_open(self, steps):
@@ -428,10 +447,10 @@ class Robot():
             steps (int): Number of movement steps
         """
         current_pos = self.get_joint_positions()
-        # arm steps unreliably if less than 3, cap to 3
+        # claw steps unreliably if less than 3, cap to 3
         if steps < 3: steps = 3
-        new_position = current_pos[3] - steps
-        safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
+        new_position = current_pos["CLAW_POSITION"] - steps
+        safe_command = self._apply_limits({"CLAW_POSITION": new_position})
         self.send_joint_values(safe_command)
 
     def claw_close(self, steps):
@@ -442,9 +461,9 @@ class Robot():
         """
         current_pos = self.get_joint_positions()
         if steps < 3: steps = 3
-        new_position = current_pos[3] + steps
-        safe_command = self._apply_limits([0, 0, 0, 0, 0, new_position], current_pos)
-        self.send_joint_values(safe_command)    
+        new_position = current_pos["CLAW_POSITION"] + steps
+        safe_command = self._apply_limits({"CLAW_POSITION": new_position})
+        self.send_joint_values(safe_command)
 
     def claw_led_on(self):
         """Turn on the claw LED."""
@@ -470,63 +489,75 @@ class Robot():
         """
         self.speed = speed
 
-    def set_joint_positions(self, goal, max_loops=15, max_speed=20, stop_threshold=3, min_goal_threshold=5):
+    def set_joint_positions(
+        self,
+        goal: dict[str, float],
+        max_loops=15,
+        max_speed=20,
+        stop_threshold=3,
+        min_goal_threshold=5
+    ):
         """Move joints to specified positions with smooth motion control.
-        
+
         Args:
-            goal (list): Target positions for each joint (use None for joints that shouldn't move)
+            goal (dict): Target joint positions (e.g., {"ARM_UP": 60, "CLAW_POSITION": 30})
             max_loops (int): Maximum control loop iterations
-            max_speed (int): Maximum movement speed
-            stop_threshold (int): Position difference threshold to stop
-            min_goal_threshold (int): Minimum position change to execute movement
-            
-        Raises:
-            ValueError: If goal is not a list of 4 elements
+            max_speed (int): Maximum movement speed per loop
+            stop_threshold (int): Difference threshold to stop motion
+            min_goal_threshold (int): Ignore small goal differences
         """
-        if goal is None or len(goal) != 4:
-            raise ValueError("Goal must be a list of 4 elements (use None for joints that should remain unchanged).")
+        if not isinstance(goal, dict):
+            raise ValueError("Goal must be a dictionary of joint names and target positions.")
 
-        command = [0, 0, 0, 0, 0, 0]
-        current_states = np.asarray(self.get_joint_positions()).astype(np.float32)
-        adjusted_goal = []
+        all_joints = ["ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT", "CLAW_POSITION"]
+        current_states = self.get_joint_positions()
 
-        for goal_value, current_value in zip(goal, current_states):
-            if goal_value is not None and abs(goal_value - current_value) < min_goal_threshold:
-                goal_value = None
-            if goal_value is None:
-                adjusted_goal.append(current_value)
+        adjusted_goal = {}
+        for joint in all_joints:
+            current_value = current_states.get(joint, 0)
+            goal_value = goal.get(joint, None)
+            if goal_value is not None and abs(goal_value - current_value) >= min_goal_threshold:
+                adjusted_goal[joint] = goal_value
             else:
-                adjusted_goal.append(goal_value)
+                adjusted_goal[joint] = current_value  # maintain current if not moving
 
-        goal = np.array(adjusted_goal, dtype=np.float32)
         loop_counter = 0
         last_command_time = time.time()
 
         while True:
             if time.time() - last_command_time > 0.1:
                 time.sleep(0.1)
-                joint_states = np.asarray(self.get_joint_positions()).astype(np.float32)
+                joint_states = self.get_joint_positions()
+                diff_command = {}
+
+                max_diff = 0
+
+                for joint, target in adjusted_goal.items():
+                    current = joint_states.get(joint, 0)
+                    diff = (target - current) * 6
+
+                    if joint == "ARM_UP":
+                        diff /= 3
+
+                    diff = max(-max_speed, min(max_speed, diff))
+
+                    if joint == "ARM_UP":
+                        diff = -diff
+
+                    diff_command[joint] = diff
+                    max_diff = max(max_diff, abs(diff))
+
                 self.logger.debug(joint_states)
+                self.logger.debug(diff_command)
+                self.logger.debug(f"max diff: {max_diff}")
 
-                diff = (goal - joint_states) * 6
-                # make arm go a bit slower
-                diff[2] /= 3 
-
-                for i, d in enumerate(diff[:-1]):
-                    diff[i] = min(max_speed, max(diff[i], -max_speed))
-
-                diff[0] = -diff[0]
-                self.logger.debug(diff)
-                self.logger.debug(np.max(np.abs(diff[:-1])))
-
-                if np.max(np.abs(diff[:-1])) < stop_threshold or loop_counter > max_loops:
-                    self.send_joint_values([0, 0, 0, 0, 0, goal[-1]])
+                if max_diff < stop_threshold or loop_counter > max_loops:
+                    stop_command = {joint: 0.0 for joint in ["ARM_UP", "WRIST_UD_UP", "WRIST_ROTATE_LEFT"]}
+                    stop_command["CLAW_POSITION"] = adjusted_goal.get("CLAW_POSITION", joint_states.get("CLAW_POSITION", 0))
+                    self.send_joint_values(stop_command)
                     break
 
-                command[2:5] = diff[:-1]
-                command[5] = goal[3]
-                self.send_joint_values(command)
-
+                self.send_joint_values(diff_command)
                 last_command_time = time.time()
                 loop_counter += 1
 
