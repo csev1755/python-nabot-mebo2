@@ -121,28 +121,6 @@ class Robot():
 
         self.logger.error(f"Failed to send {cmd} after multiple retries")
         return False
-    
-    def send_joint_values(self, joint_dict):
-        """Send multiple joint/motor commands.
-        
-        Args:
-            joint_dict (dict): Dictionary mapping joint/motor names to their command values
-        """
-
-        URL = "http://192.168.99.1/ajax/command.json?"
-
-        for i, (name, value) in enumerate(joint_dict.items()):
-            if i > 0:
-                URL += "&"
-            URL += self._gen_single_cmd(number=i + 1, command=name, value=value)
-
-        time.sleep(0.01)
-        try:
-            r = requests.get(url=URL, verify=False, timeout=1)
-        except requests.exceptions.Timeout:
-            self.logger.warning("request timeout")
-        except Exception as e:
-            self.logger.warning(e)
 
     def _gen_single_cmd(self, command, number=None, value=None):
         """Generate URL suffix for a single command."""
@@ -261,73 +239,30 @@ class Robot():
             if safe_command:
                 self.send_joint_values(safe_command)
                 time.sleep(sleep)
-            else: break
-       
+            else: break 
 
-    def get_joint_positions(self) -> dict[str, int]:
-        """Query and return current joint positions.
-
-        Returns:
-            dict: Current positions of all joints
+    def send_joint_values(self, joint_dict):
+        """Send multiple joint/motor commands.
+        
+        Args:
+            joint_dict (dict): Dictionary mapping joint/motor names to their command values
         """
 
-        fallback_state = self.robot_joint_position_dict.copy()
+        URL = "http://192.168.99.1/ajax/command.json?"
 
-        joint_queries = {
-            "ARM_QUERY": "ARM_UP",
-            "WRIST_UD_QUERY": "WRIST_UD_UP",
-            "WRIST_ROTATE_QUERY": "WRIST_ROTATE_LEFT",
-            "CLAW_QUERY": "CLAW_POSITION"
-        }
+        for i, (name, value) in enumerate(joint_dict.items()):
+            if i > 0:
+                URL += "&"
+            URL += self._gen_single_cmd(number=i + 1, command=name, value=value)
 
-        for query_name, joint_key in joint_queries.items():
-            try:
-                data = self._send_single_cmd(query_name, 0)
-                response = data['response']
-
-                if query_name == "ARM_QUERY" and "ARM" in response and len(response) >= 4:
-                    self.robot_joint_position_dict[joint_key] = int(response[4:])
-                elif query_name == "WRIST_UD_QUERY" and "WRIST_UD" in response and len(response) >= 9:
-                    self.robot_joint_position_dict[joint_key] = int(response[9:])
-                elif query_name == "WRIST_ROTATE_QUERY" and "WRIST_ROTATE" in response and len(response) >= 13:
-                    self.robot_joint_position_dict[joint_key] = int(response[13:])
-                elif query_name == "CLAW_QUERY" and "CLAW" in response and len(response) >= 5:
-                    self.robot_joint_position_dict[joint_key] = int(response[5:])
-            except Exception:
-                self.logger.warning("Error parsing robot's states")
-                return fallback_state
-
-        return self.robot_joint_position_dict   
+        time.sleep(0.01)
+        try:
+            r = requests.get(url=URL, verify=False, timeout=1)
+        except requests.exceptions.Timeout:
+            self.logger.warning("request timeout")
+        except Exception as e:
+            self.logger.warning(e)    
     
-    def get_battery(self):
-        """Query and return an estimated battery charge percentage 
-        
-        Returns:
-            int: Percent estimated battery charge remaining
-        """
-        json = self._send_single_cmd("BAT")
-        
-        if json['response'].startswith("BAT="):
-            response = json['response']
-            value = int(response[4:])
-            # battery value seems like a voltage
-            # 415 seemed to be the lowest value before poweroff
-            # max value at full speed on full battery for me seemed to be about 730 so we'll use that as a baseline
-            # max value at idle was 800 so we'll start with that to estimate before movement
-            # we'll always assume lowest value
-            max_idle = 800
-            max_load = 730
-            min_load = 415
-
-            if self.battery_percent == -1 or value > max_load:
-                percent = max(0, min(100, round((value - min_load) / (max_idle - min_load) * 100)))
-            if value <= max_load:
-                percent = max(0, min(100, round((value - min_load) / (max_load - min_load) * 100)))
-            if self.battery_percent == -1 or percent < self.battery_percent:
-                self.battery_percent = percent
-
-        return self.battery_percent
-
     def stop(self):
         """Stop all movement."""
         
@@ -488,6 +423,70 @@ class Robot():
             speed (int): Speed value (0-100)
         """
         self.speed = speed
+
+    def get_battery(self):
+        """Query and return an estimated battery charge percentage 
+        
+        Returns:
+            int: Percent estimated battery charge remaining
+        """
+        json = self._send_single_cmd("BAT")
+        
+        if json['response'].startswith("BAT="):
+            response = json['response']
+            value = int(response[4:])
+            # battery value seems like a voltage
+            # 415 seemed to be the lowest value before poweroff
+            # max value at full speed on full battery for me seemed to be about 730 so we'll use that as a baseline
+            # max value at idle was 800 so we'll start with that to estimate before movement
+            # we'll always assume lowest value
+            max_idle = 800
+            max_load = 730
+            min_load = 415
+
+            if self.battery_percent == -1 or value > max_load:
+                percent = max(0, min(100, round((value - min_load) / (max_idle - min_load) * 100)))
+            if value <= max_load:
+                percent = max(0, min(100, round((value - min_load) / (max_load - min_load) * 100)))
+            if self.battery_percent == -1 or percent < self.battery_percent:
+                self.battery_percent = percent
+
+        return self.battery_percent
+
+    def get_joint_positions(self) -> dict[str, int]:
+        """Query and return current joint positions.
+
+        Returns:
+            dict: Current positions of all joints
+        """
+
+        fallback_state = self.robot_joint_position_dict.copy()
+
+        joint_queries = {
+            "ARM_QUERY": "ARM_UP",
+            "WRIST_UD_QUERY": "WRIST_UD_UP",
+            "WRIST_ROTATE_QUERY": "WRIST_ROTATE_LEFT",
+            "CLAW_QUERY": "CLAW_POSITION"
+        }
+
+        for query_name, joint_key in joint_queries.items():
+            try:
+                data = self._send_single_cmd(query_name, 0)
+                response = data['response']
+
+                if query_name == "ARM_QUERY" and "ARM" in response and len(response) >= 4:
+                    self.robot_joint_position_dict[joint_key] = int(response[4:])
+                elif query_name == "WRIST_UD_QUERY" and "WRIST_UD" in response and len(response) >= 9:
+                    self.robot_joint_position_dict[joint_key] = int(response[9:])
+                elif query_name == "WRIST_ROTATE_QUERY" and "WRIST_ROTATE" in response and len(response) >= 13:
+                    self.robot_joint_position_dict[joint_key] = int(response[13:])
+                elif query_name == "CLAW_QUERY" and "CLAW" in response and len(response) >= 5:
+                    self.robot_joint_position_dict[joint_key] = int(response[5:])
+            except Exception:
+                self.logger.warning("Error parsing robot's states")
+                return fallback_state
+
+        return self.robot_joint_position_dict          
 
     def set_joint_positions(
         self,
