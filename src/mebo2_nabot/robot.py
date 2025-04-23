@@ -94,33 +94,46 @@ class Robot():
             result += self._to_base64(int(val) >> int(i * 6))
         return result            
 
-    def _send_single_cmd(self, cmd, value=None, retries=5, delay=0.5):
-        """Send a single command with retry logic.
+    def _send_request(self, url, retries=5, delay=0.5):
+        """Send a single request.
         
         Args:
-            cmd (str): Command name to send
-            value (int, optional): Parameter value for the command
+            url (str): URL to request
             retries (int, optional): Number of retry attempts. Defaults to 5
             delay (float, optional): Delay between retries in seconds. Defaults to 0.5
             
         Returns:
-            dict: JSON response or None if all retries fail
-        """
-        URL = "http://192.168.99.1/ajax/command.json?" + self._gen_single_cmd(cmd, number=1, value=value)
-
+            request.Response: Request response or False if all retries fail
+        """        
         for attempt in range(retries):
             try:
-                r = requests.get(url=URL, verify=False, timeout=1)
-                return r.json()
-            except requests.RequestException or r.json is None as e:
+                return requests.get(url=url, verify=False, timeout=1)
+            except requests.RequestException as e:
                 self.logger.warning(f"Attempt {attempt + 1}/{retries} failed: {e}")
                 # sometimes port 80 closes, poking 554 (RTSP) seems to open it back up
                 try: requests.get("http://192.168.99.1:554") 
                 except: pass          
                 time.sleep(delay)
 
-        self.logger.error(f"Failed to send {cmd} after multiple retries")
+        self.logger.error(f"Failed to reach {url} after multiple retries")
         return False
+
+    def _send_single_cmd(self, cmd, value=None):
+        """Send a single command and parses the response.
+        
+        Args:
+            cmd (str): Command name to send
+            value (int, optional): Parameter value for the command
+            
+        Returns:
+            dict: JSON response or False
+        """
+        URL = "http://192.168.99.1/ajax/command.json?" + self._gen_single_cmd(cmd, number=1, value=value)
+        try:
+            return self._send_request(URL).json()
+        except:
+            self.logger.warning(f"Couldn't parse JSON in {cmd} response")
+            return False
 
     def _gen_single_cmd(self, command, number=None, value=None):
         """Generate URL suffix for a single command."""
@@ -247,21 +260,13 @@ class Robot():
         Args:
             joint_dict (dict): Dictionary mapping joint/motor names to their command values
         """
-
         URL = "http://192.168.99.1/ajax/command.json?"
 
         for i, (name, value) in enumerate(joint_dict.items()):
             if i > 0:
                 URL += "&"
             URL += self._gen_single_cmd(number=i + 1, command=name, value=value)
-
-        time.sleep(0.01)
-        try:
-            r = requests.get(url=URL, verify=False, timeout=1)
-        except requests.exceptions.Timeout:
-            self.logger.warning("request timeout")
-        except Exception as e:
-            self.logger.warning(e)    
+        return self._send_request(URL)
     
     def stop(self):
         """Stop all movement."""
