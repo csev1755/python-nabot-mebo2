@@ -138,10 +138,10 @@ class GraphicalInterface():
             x = (v - w) // 2
             y = (v + w) // 2
 
-            command_to_send = {"WHEEL_LEFT_FORWARD": x, "WHEEL_RIGHT_FORWARD":y, \
-                               "ARM_UP":self.scale1.get(), "WRIST_UD_UP":self.scale2.get(), \
-                                "WRIST_ROTATE_LEFT":self.scale4.get(), \
-                                    "CLAW_POSITION":self.scale3.get()}
+            command_to_send = {self.robot_ctrl.Command.WHEEL_LEFT_FORWARD: x, self.robot_ctrl.Command.WHEEL_RIGHT_FORWARD:y, \
+                               self.robot_ctrl.Command.ARM_UP:self.scale1.get(), self.robot_ctrl.Command.WRIST_UD_UP:self.scale2.get(), \
+                                self.robot_ctrl.Command.WRIST_ROTATE_LEFT:self.scale4.get(), \
+                                    self.robot_ctrl.Command.CLAW_POSITION:self.scale3.get()}
             self.robot_ctrl.send_joint_values(command_to_send)
 
         self.parent.after(10, self.robot_controller)
