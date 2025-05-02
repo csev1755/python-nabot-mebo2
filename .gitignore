@@ -1,3 +1,18 @@
+### JupyterNotebooks ###
+# gitignore template for Jupyter Notebooks
+# website: http://jupyter.org/
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Remove previous ipynb_checkpoints
+#   git rm -r .ipynb_checkpoints/
+
+### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -50,6 +65,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+cover/
 
 # Translations
 *.mo
@@ -69,9 +85,11 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/build/
+docs/output/
 
 # PyBuilder
+.pybuilder/
 target/
 
 # Jupyter Notebook
@@ -130,3 +148,9 @@ dmypy.json
 
 # YOLO models
 yolo*.pt
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
