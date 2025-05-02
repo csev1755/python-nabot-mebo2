@@ -11,6 +11,7 @@ class Robot():
     """Main robot control class implementing singleton pattern."""
 
     class Command(Enum):
+        """Enum of available commands and their strings."""
         EYE_LED_STATE = "eye_led_state()"
         CLAW_LED_STATE = "claw_led_state()"
         GET_SSID = "get_ssid()"

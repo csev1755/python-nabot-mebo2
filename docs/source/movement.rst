@@ -25,10 +25,11 @@ Retrieve Joint Positions
 .. autoclass:: mebo2_nabot.Robot
    :members:
    :exclude-members: Camera, Command, Position, Speaker, Microphone, getInstance
-   :no-index: Command, Position
+
 .. autoclass:: mebo2_nabot.Robot.Command
    :members:
    :undoc-members:
 .. autoclass:: mebo2_nabot.Robot.Position
    :members: 
-   :undoc-members:   
+   :undoc-members:
+   :exclude-members: query_command, control_command
