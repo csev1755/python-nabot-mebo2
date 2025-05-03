@@ -6,9 +6,9 @@ import subprocess
 import cv2
 import numpy as np
 from enum import Enum, auto
+import enum_tools.documentation
 
 class Robot():
-    """Main robot control class implementing singleton pattern."""
 
     class Command(Enum):
         """Enum of available commands and their strings."""
@@ -23,10 +23,10 @@ class Robot():
         WRIST_ROTATE_QUERY = "WRIST_ROTATE=?"
         CLAW_QUERY = "CLAW=?"
         VERSION_QUERY = "VER=?"
-        ACEAA = "!ACEAA"
-        BCQAA = "!BCQAA"
-        CCIAA = "!CCIAA"
-        INIT_ALL = "!CVVDSAAAAAAAAAAAAAAAAAAAAAAAAYtBQfA4uAAAAAAAAAAQfAoPAcXAAAA"
+        ACEAA = "!ACEAA" #: Used only for init
+        BCQAA = "!BCQAA" #: Used only for init
+        CCIAA = "!CCIAA" #: Used only for init
+        INIT_ALL = "!CVVDSAAAAAAAAAAAAAAAAAAAAAAAAYtBQfA4uAAAAAAAAAAQfAoPAcXAAAA" #: Used only for init
         REBOOT_CMD = "DE"
         LIGHT_ON = "RAAAAAAAad"
         LIGHT_OFF = "RAAAAAAAac"
@@ -40,32 +40,33 @@ class Robot():
         CLAW_POSITION = "N"
         CAL_ARM = "DE"
         CAL_WRIST_UD = "DI"
-        CAL_WRIST_ROTATE = "DQ"
+        CAL_WRIST_ROTATE = "DQ" #: test
         CAL_CLAW = "Dg"
         CAL_ALL = "D_"
-        QUERY_REG = auto()
-        SET_REG = auto()
-        SAVE_REG = "REG=FLUSH"
-        QUERY_EVENT = "*"
+        QUERY_REG = auto() #: Exact function unknown
+        SET_REG = auto() #: Exact function unknown
+        SAVE_REG = "REG=FLUSH" #: Exact function unknown
+        QUERY_EVENT = "*" #: Exact function unknown
 
     class Position(Enum):
         """Enum representing joint positions with their associated commands."""
-        ARM = (auto(), 'ARM_QUERY', 'ARM_UP')
-        WRIST_UD = (auto(), 'WRIST_UD_QUERY', 'WRIST_UD_UP')
-        WRIST_ROTATE = (auto(), 'WRIST_ROTATE_QUERY', 'WRIST_ROTATE_LEFT')
-        CLAW = (auto(), 'CLAW_QUERY', 'CLAW_POSITION')
+        ARM = ('ARM_QUERY', 'ARM_UP')
+        WRIST_UD = ('WRIST_UD_QUERY', 'WRIST_UD_UP')
+        WRIST_ROTATE = ('WRIST_ROTATE_QUERY', 'WRIST_ROTATE_LEFT')
+        CLAW = ('CLAW_QUERY', 'CLAW_POSITION')
 
-        def __init__(self, value, query_command_name, control_command_name):
-            self._value_ = value
+        def __init__(self, query_command_name, control_command_name):
             self.query_command_name = query_command_name
             self.control_command_name = control_command_name
 
         @property
         def query_command(self):
+            """Return the associated Command enum that queries the position"""
             return Robot.Command[self.query_command_name]
 
         @property
         def control_command(self):
+            """Return the associated Command enum that controls the joint"""
             return Robot.Command[self.control_command_name]
 
     messageCount = 0

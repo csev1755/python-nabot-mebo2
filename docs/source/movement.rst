@@ -29,7 +29,6 @@ Retrieve Joint Positions
 .. autoclass:: mebo2_nabot.Robot.Command
    :members:
    :undoc-members:
-.. autoclass:: mebo2_nabot.Robot.Position
-   :members: 
+.. autoenum:: mebo2_nabot.Robot.Position
+   :members:
    :undoc-members:
-   :exclude-members: query_command, control_command
